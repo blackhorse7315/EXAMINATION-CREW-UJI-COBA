@@ -1,0 +1,1279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>E CREW - Type Rating Exam System</title>
+    
+    <link rel="icon" type="image/png" href="https://lh3.googleusercontent.com/d/1-Ix2jV27kfEwv3lycXA_4FGqpKS6TqtD">
+    <link rel="apple-touch-icon" href="https://lh3.googleusercontent.com/d/1-Ix2jV27kfEwv3lycXA_4FGqpKS6TqtD">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; color: #0f172a; -webkit-tap-highlight-color: transparent; }
+        .gradient-bg { background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); }
+        .glass-morphism { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.2); }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .page-fade { animation: fadeIn 0.4s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .custom-checkbox:checked + label { background-color: #eff6ff; border-color: #3b82f6; color: #1d4ed8; }
+        
+        .text-gold { color: #FFD700; text-shadow: 0 0 12px rgba(255, 215, 0, 0.4); }
+        .bg-dark-card { background-color: #131926; }
+        .modal-body-scroll { max-height: 70vh; overflow-y: auto; padding-right: 4px; }
+
+        /* --- CSS FOR PDF PRINTING --- */
+        #print-area { display: none; }
+        @media print {
+            @page { size: A4; margin: 20mm; }
+            html, body { 
+                width: auto !important; 
+                max-width: 100% !important; 
+                margin: 0 !important; 
+                padding: 0 !important; 
+                background: white !important; 
+            }
+            body > *:not(#print-area) { display: none !important; }
+            #print-area {
+                display: block !important;
+                width: auto !important;
+                max-width: 100% !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                background-color: white;
+                color: black;
+                position: static;
+            }
+            .print-page { 
+                font-family: 'Calibri', sans-serif; 
+                font-size: 11pt;
+                line-height: 1.5;
+                width: 100% !important;
+                max-width: 100% !important;
+                box-sizing: border-box !important;
+            }
+            .print-page * { box-sizing: border-box; }
+            .print-header { text-align: center; border-bottom: 2px solid black; padding-bottom: 10px; margin-bottom: 20px; }
+            .print-header h1 { font-size: 18pt; margin: 0; font-weight: bold; }
+            .print-header h2 { font-size: 14pt; margin: 5px 0 0 0; font-weight: bold; text-transform: uppercase; }
+            .print-header h3 { font-size: 11pt; margin: 5px 0 0 0; font-weight: normal; }
+            .print-section-title { font-weight: bold; font-size: 11pt; border-bottom: 1px solid black; margin-top: 20px; margin-bottom: 10px; padding-bottom: 3px; text-transform: uppercase; }
+            .print-table { width: 100%; font-size: 11pt; border-collapse: collapse; }
+            .print-table td { padding: 4px 0; vertical-align: top; overflow-wrap: break-word; word-break: normal; }
+            .print-table td:first-child { width: 160px; font-weight: normal; }
+            .print-result-box { margin: 15px 0; font-size: 11pt; text-align: center; }
+            .print-score { font-size: 24pt; font-weight: bold; }
+            .print-summary-item { margin-bottom: 15px; page-break-inside: avoid; }
+            .print-summary-item.correct { color: green !important; }
+            .print-summary-item.wrong { color: red !important; }
+            
+            .print-signatures { margin-top: 50px; width: 100%; display: flex; justify-content: space-between; text-align: center; page-break-inside: avoid; }
+            .print-sig-box { width: 250px; display: flex; flex-direction: column; align-items: center; }
+            .print-sig-title { font-size: 11pt; margin-bottom: 5px; }
+            .print-sig-img { height: 80px; width: 100%; display: flex; justify-content: center; align-items: center; margin-bottom: 5px; }
+            .print-sig-img img { max-height: 100%; max-width: 100%; object-fit: contain; }
+            .print-sig-name { font-weight: bold; font-size: 11pt; text-transform: uppercase; text-decoration: underline; margin-bottom: 2px; }
+            .print-sig-detail { font-size: 10pt; }
+        }
+    </style>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, onSnapshot, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // TWA Firebase Configuration
+        const firebaseConfig = {
+          apiKey: "AIzaSyBzcfPBaHdmTRLCSrvuT1F-qDsJWUZZQT8",
+          authDomain: "twa-ecrew.firebaseapp.com",
+          projectId: "twa-ecrew",
+          storageBucket: "twa-ecrew.firebasestorage.app",
+          messagingSenderId: "559962441630",
+          appId: "1:559962441630:web:47087fd2ec7f08156c788f",
+          measurementId: "G-MPTFR90EGW"
+        };
+        
+        // Environment fallback for immersive sandbox (if exists)
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'e-crew-twa';
+        
+        window.app = initializeApp(firebaseConfig);
+        window.db = getFirestore(window.app);
+        window.auth = getAuth(window.app);
+        window.appId = appId;
+
+        async function initFirebase() {
+            try {
+                if (typeof __initial_auth_token !== 'undefined') {
+                    await signInWithCustomToken(window.auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(window.auth);
+                }
+                console.log("Firebase Auth Success");
+                window.firebaseReady = true;
+                if(window.loadDataFromCloud) window.loadDataFromCloud(); 
+            } catch (error) {
+                console.error("Firebase Auth Error:", error);
+                alert("Database Connection Failed. Running offline mode.");
+            }
+        }
+        initFirebase();
+        
+        // Export Firestore functions to window for global access
+        window.fsDoc = doc;
+        window.fsSetDoc = setDoc;
+        window.fsOnSnapshot = onSnapshot;
+        window.fsGetDoc = getDoc;
+    </script>
+</head>
+<body class="min-h-screen">
+
+    <!-- Loading Screen -->
+    <div id="loading-screen" class="fixed inset-0 bg-white z-[100] flex flex-col items-center justify-center transition-opacity duration-500">
+        <div class="w-20 h-20 mb-4 animate-pulse"><img src="https://lh3.googleusercontent.com/d/1-Ix2jV27kfEwv3lycXA_4FGqpKS6TqtD" alt="Logo" class="w-full h-full object-contain" /></div>
+        <div class="text-blue-600 font-black tracking-widest uppercase text-sm">Connecting Database...</div>
+    </div>
+
+    <div id="print-area"></div>
+
+    <div id="app" class="opacity-0 transition-opacity duration-500">
+        
+        <div id="auth-section" class="min-h-screen flex items-center justify-center p-4 gradient-bg relative">
+            <div class="max-w-md w-full glass-morphism p-8 rounded-3xl shadow-2xl page-fade">
+                <div class="text-center mb-8">
+                    <div class="w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+                        <img src="https://lh3.googleusercontent.com/d/1-Ix2jV27kfEwv3lycXA_4FGqpKS6TqtD" alt="Logo" class="w-full h-full object-contain drop-shadow-lg" />
+                    </div>
+                    <h1 class="text-2xl font-bold text-slate-900 leading-tight">E CREW</h1>
+                    <h2 class="text-md font-medium text-blue-600">Type Rating Exam System</h2>
+                    <p class="text-[10px] uppercase tracking-widest text-slate-400 mt-1 font-bold">Transwisata Prima Aviation</p>
+                </div>
+
+                <div class="flex bg-slate-100 p-1 rounded-xl mb-6">
+                    <button id="tab-login" onclick="switchAuth('login')" class="flex-1 py-3 text-xs font-black rounded-lg bg-white text-blue-600 shadow-sm transition-all uppercase tracking-widest">Login</button>
+                    <button id="tab-register" onclick="switchAuth('register')" class="flex-1 py-3 text-xs font-black rounded-lg text-slate-500 hover:text-slate-700 transition-all uppercase tracking-widest">Register</button>
+                </div>
+
+                <form id="form-login" class="space-y-4" onsubmit="handleLogin(event)">
+                    <input type="text" id="login-id" placeholder="Username / ID" required class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 focus:bg-white transition-all text-sm font-medium">
+                    <input type="password" id="login-pass" placeholder="Password" required class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 focus:bg-white transition-all text-sm font-medium">
+                    <button type="submit" class="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-black uppercase tracking-widest shadow-lg shadow-blue-200 transition-all mt-2 text-sm">Sign In</button>
+                </form>
+
+                <form id="form-register" class="space-y-4 hidden" onsubmit="handleRegister(event)">
+                    <input type="text" id="reg-name" placeholder="Full Name" required class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none">
+                    <input type="text" id="reg-id" placeholder="Username (for login)" required class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none">
+                    <input type="password" id="reg-pass" placeholder="Password" required class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none">
+                    <div class="grid grid-cols-2 gap-3">
+                        <select id="reg-rank" class="w-full px-3 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none">
+                            <option>CCP</option><option>FI</option><option>GI</option><option>Capt</option><option>FO</option>
+                        </select>
+                        <select id="reg-rating" class="w-full px-3 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none">
+                            <option>Gulfstream IV-SP (G-IV)</option><option>Beechcraft King Air 350 (BE-300)</option><option>Casa 212 (CA-212)</option><option>Agusta 109S Grand (AW-109)</option><option>Bell 412 EP (B412)</option>
+                        </select>
+                    </div>
+                    <input type="text" id="reg-license" placeholder="License (e.g. ATPL/ 20-0007)" required class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none">
+                    <button type="submit" class="w-full py-4 bg-green-600 text-white rounded-xl font-bold uppercase tracking-widest">Create Account</button>
+                </form>
+            </div>
+
+            <div class="absolute bottom-6 left-0 w-full text-center pointer-events-none">
+                <p class="text-[10px] text-slate-400 font-bold tracking-widest uppercase opacity-70">
+                    Created By <span class="text-blue-400">Skyops Solution</span>
+                </p>
+            </div>
+        </div>
+
+        <div id="main-section" class="hidden min-h-screen flex flex-col bg-[#f1f5f9]">
+            <header class="bg-white shadow-sm sticky top-0 z-50">
+                <div class="max-w-7xl mx-auto px-4 h-16 flex justify-between items-center">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 flex items-center justify-center">
+                            <img src="https://lh3.googleusercontent.com/d/1-Ix2jV27kfEwv3lycXA_4FGqpKS6TqtD" alt="Logo" class="w-full h-full object-contain drop-shadow-md" />
+                        </div>
+                        <div class="block text-left">
+                            <h1 class="text-sm font-bold text-slate-800 leading-none uppercase tracking-tighter">E CREW</h1>
+                            <p class="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Transwisata</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2 md:gap-4">
+                        <div class="text-right hidden xs:block">
+                            <p id="user-display-name" class="text-xs font-bold text-slate-900">User</p>
+                            <p id="user-display-role" class="text-[9px] text-blue-500 font-bold uppercase tracking-widest">Role</p>
+                        </div>
+                        <button onclick="logout()" class="p-2 text-slate-400 hover:text-red-500 transition-colors" title="Logout">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+                        </button>
+                    </div>
+                </div>
+
+                <div id="admin-tabs" class="bg-white border-t border-slate-50 hidden overflow-x-auto no-scrollbar shadow-inner">
+                    <div class="max-w-7xl mx-auto flex">
+                        <button onclick="renderTabContent('users')" id="nt-users" class="px-6 py-4 text-xs font-black uppercase tracking-widest border-b-2 transition-colors border-blue-600 text-blue-600">Users</button>
+                        <button onclick="renderTabContent('instructor')" id="nt-instructor" class="px-6 py-4 text-xs font-black uppercase tracking-widest border-b-2 transition-colors border-transparent text-slate-400 hover:text-slate-600">Instructor</button>
+                        <button onclick="renderTabContent('questions')" id="nt-questions" class="px-6 py-4 text-xs font-black uppercase tracking-widest border-b-2 transition-colors border-transparent text-slate-400 hover:text-slate-600">Exam Banks</button>
+                        <button onclick="renderTabContent('assign')" id="nt-assign" class="px-6 py-4 text-xs font-black uppercase tracking-widest border-b-2 transition-colors border-transparent text-slate-400 hover:text-slate-600">Assign Tasks</button>
+                        <button onclick="renderTabContent('history')" id="nt-history" class="px-6 py-4 text-xs font-black uppercase tracking-widest border-b-2 transition-colors border-transparent text-slate-400 hover:text-slate-600">History</button>
+                    </div>
+                </div>
+            </header>
+
+            <main class="flex-1 max-w-7xl w-full mx-auto p-4 md:p-8" id="dynamic-content">
+                <!-- Content injected via JS -->
+            </main>
+        </div>
+    </div>
+
+    <div id="modal-container" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center z-[100] p-4 opacity-100 transition-opacity">
+        <div class="bg-white w-full max-w-lg rounded-3xl shadow-2xl flex flex-col max-h-[90vh] page-fade border border-slate-100">
+            <div class="p-5 border-b border-slate-50 flex justify-between items-center bg-slate-50/50 rounded-t-3xl">
+                <h3 id="modal-title" class="font-black text-slate-800 uppercase tracking-widest text-sm">Modal</h3>
+                <button onclick="closeModal()" class="text-slate-400 hover:text-red-500 bg-white rounded-full p-1 shadow-sm">&times;</button>
+            </div>
+            <div id="modal-body" class="p-6 modal-body-scroll flex-1 text-slate-600 text-sm"></div>
+            <div id="modal-footer" class="p-5 border-t border-slate-50 flex justify-end gap-3 bg-slate-50/50 rounded-b-3xl"></div>
+        </div>
+    </div>
+
+    <script>
+        // State Management
+        let state = {
+            users: [],
+            instructors: [],
+            assignments: [],
+            questionSets: [],
+            formNo: { value: 'F/TWA-OPS/061/01', date: '21 Jun 2024' },
+            admin: { u: 'admin', p: 'admin123' },
+            superAdmin: { code: '2805' },
+            currentUser: null,
+            isAdmin: false,
+            activeTab: 'users',
+            lookups: {
+                ranks: ['CCP', 'FI', 'GI', 'Capt', 'FO'],
+                ratings: ['Gulfstream IV-SP (G-IV)', 'Beechcraft King Air 350 (BE-300)', 'Casa 212 (CA-212)', 'Agusta 109S Grand (AW-109)', 'Bell 412 EP (B412)'],
+                categories: ['Type Rating', 'Mandatory Training']
+            }
+        };
+
+        let unsubscribeSnapshot = null;
+
+        function showLoading() { document.getElementById('loading-screen').classList.remove('hidden'); document.getElementById('app').classList.add('opacity-0'); }
+        function hideLoading() { document.getElementById('loading-screen').classList.add('hidden'); document.getElementById('app').classList.remove('opacity-0'); }
+
+        // --- FIREBASE INTEGRATION ---
+        function loadDataFromCloud() {
+            if (!window.firebaseReady || !window.auth.currentUser) return;
+            
+            if (unsubscribeSnapshot) unsubscribeSnapshot();
+
+            // Referensi ke dokumen tunggal yang menyimpan seluruh state di Firestore
+            const docRef = window.fsDoc(window.db, 'artifacts', window.appId, 'public', 'data', 'ecrew_db', 'main_state');
+            
+            showLoading();
+            
+            unsubscribeSnapshot = window.fsOnSnapshot(docRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    state.users = data.users || [];
+                    state.instructors = data.instructors || [];
+                    state.assignments = data.assignments || [];
+                    state.questionSets = data.questionSets || [];
+                    if (data.formNo !== undefined) state.formNo = data.formNo;
+                    if (data.admin && data.admin.u !== undefined) state.admin = data.admin;
+                    if (data.superAdmin && data.superAdmin.code) state.superAdmin.code = data.superAdmin.code;
+                } else {
+                    syncToCloud(); 
+                }
+                
+                hideLoading();
+                
+                if (state.currentUser) {
+                    if (state.currentUser.role === 'superadmin') renderSuperAdmin();
+                    else if (state.isAdmin) renderTabContent(state.activeTab);
+                    else renderUserPortal();
+                }
+            }, (error) => {
+                console.error("Firestore Listen Error:", error);
+                hideLoading();
+            });
+        }
+
+        function syncToCloud() {
+            if (!window.firebaseReady || !window.auth.currentUser) return;
+            
+            const docRef = window.fsDoc(window.db, 'artifacts', window.appId, 'public', 'data', 'ecrew_db', 'main_state');
+            
+            const dataToSave = {
+                users: state.users,
+                instructors: state.instructors,
+                assignments: state.assignments,
+                questionSets: state.questionSets,
+                formNo: state.formNo,
+                admin: state.admin,
+                superAdmin: state.superAdmin
+            };
+            
+            window.fsSetDoc(docRef, dataToSave).catch(err => {
+                console.error("Failed to sync to Firestore:", err);
+            });
+        }
+
+        // --- AUTH & ROUTING ---
+        function switchAuth(type) {
+            document.getElementById('form-login').classList.toggle('hidden', type !== 'login');
+            document.getElementById('form-register').classList.toggle('hidden', type !== 'register');
+            document.getElementById('tab-login').className = type === 'login' ? "flex-1 py-3 text-xs font-black rounded-lg bg-white text-blue-600 shadow-sm transition-all uppercase tracking-widest" : "flex-1 py-3 text-xs font-black rounded-lg text-slate-500 hover:text-slate-700 transition-all uppercase tracking-widest";
+            document.getElementById('tab-register').className = type === 'register' ? "flex-1 py-3 text-xs font-black rounded-lg bg-white text-blue-600 shadow-sm transition-all uppercase tracking-widest" : "flex-1 py-3 text-xs font-black rounded-lg text-slate-500 hover:text-slate-700 transition-all uppercase tracking-widest";
+        }
+
+        function handleLogin(e) {
+            e.preventDefault();
+            const id = document.getElementById('login-id').value;
+            const pass = document.getElementById('login-pass').value;
+
+            if (id === 'superadmin' && pass === state.superAdmin.code) {
+                state.currentUser = { name: 'Super Administrator', role: 'superadmin' };
+                state.isAdmin = true;
+                loginSuccess(); return;
+            }
+
+            if (id === state.admin.u && pass === state.admin.p) {
+                state.currentUser = { name: 'Administrator', role: 'admin' };
+                state.isAdmin = true;
+                loginSuccess(); return;
+            }
+
+            const u = state.users.find(x => x.username === id && x.password === pass);
+            if (u) {
+                state.currentUser = u;
+                state.isAdmin = false;
+                loginSuccess(); return;
+            }
+
+            alert('Invalid credentials!');
+        }
+
+        function handleRegister(e) {
+            e.preventDefault();
+            const n = document.getElementById('reg-name').value;
+            const user = document.getElementById('reg-id').value;
+            if (state.users.some(x => x.username === user) || user === state.admin.u || user === 'superadmin') {
+                alert('Username already exists!'); return;
+            }
+            const newUser = {
+                id: Date.now(),
+                name: n, username: user,
+                password: document.getElementById('reg-pass').value,
+                rank: document.getElementById('reg-rank').value,
+                rating: document.getElementById('reg-rating').value,
+                license: document.getElementById('reg-license').value,
+                signUrl: ''
+            };
+            state.users.push(newUser);
+            syncToCloud();
+            alert('Registration successful! Please login.');
+            switchAuth('login');
+            e.target.reset();
+        }
+
+        function loginSuccess() {
+            document.getElementById('auth-section').classList.add('hidden');
+            document.getElementById('main-section').classList.remove('hidden');
+            document.getElementById('user-display-name').innerText = state.currentUser.name;
+            document.getElementById('user-display-role').innerText = state.currentUser.role || state.currentUser.rank;
+            
+            if (state.currentUser.role === 'superadmin') {
+                renderSuperAdmin();
+            } else if (state.isAdmin) {
+                document.getElementById('admin-tabs').classList.remove('hidden');
+                renderTabContent('users');
+            } else {
+                renderUserPortal();
+            }
+        }
+
+        function logout() {
+            if(!confirm('Are you sure you want to logout?')) return;
+            if (window.activeExam && window.activeExam.timerId) clearInterval(window.activeExam.timerId);
+            state.currentUser = null; state.isAdmin = false;
+            document.getElementById('auth-section').classList.remove('hidden');
+            document.getElementById('main-section').classList.add('hidden');
+            document.getElementById('admin-tabs').classList.add('hidden');
+            document.getElementById('form-login').reset();
+        }
+
+        // --- SUPER ADMIN ---
+        function renderSuperAdmin() {
+            document.getElementById('dynamic-content').innerHTML = `
+                <div class="max-w-md mx-auto page-fade">
+                    <h2 class="text-2xl font-black text-slate-800 uppercase tracking-tighter mb-8 text-center">System Config</h2>
+                    <div class="bg-white p-8 rounded-3xl shadow-sm border border-slate-100 space-y-6">
+                        <div>
+                            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Form Details</p>
+                            <input type="text" id="sa-form-no" value="${state.formNo ? state.formNo.value : ''}" class="w-full p-3 border rounded-xl text-sm mb-3 font-mono" placeholder="Form No (e.g. F/TWA...)">
+                        </div>
+                        <div class="pt-4 border-t border-slate-50">
+                            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Admin Credentials</p>
+                            <input type="text" id="sa-admin-u" value="${state.admin.u}" class="w-full p-3 border rounded-xl text-sm mb-3" placeholder="Admin Username">
+                            <input type="text" id="sa-admin-p" value="${state.admin.p}" class="w-full p-3 border rounded-xl text-sm font-mono" placeholder="Admin Password">
+                        </div>
+                        <div class="pt-4 border-t border-slate-50">
+                            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Super Admin PIN</p>
+                            <input type="text" id="sa-pin" value="${state.superAdmin.code}" class="w-full p-3 border rounded-xl text-sm font-mono" placeholder="PIN Code (Numbers Only)">
+                        </div>
+                        <button onclick="saveSuperAdmin()" class="w-full py-4 bg-slate-900 text-white rounded-xl text-xs font-black uppercase tracking-widest mt-4">Save Configuration</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function saveSuperAdmin() {
+            state.formNo.value = document.getElementById('sa-form-no').value;
+            state.admin.u = document.getElementById('sa-admin-u').value;
+            state.admin.p = document.getElementById('sa-admin-p').value;
+            state.superAdmin.code = document.getElementById('sa-pin').value;
+            syncToCloud(); alert('Configuration saved.');
+        }
+        
+        function promptVerify(cb) {
+            const code = prompt("Enter Super Admin PIN to authorize:");
+            if (code === state.superAdmin.code) { cb(); } else { alert("Verification Failed!"); }
+        }
+
+        // --- ADMIN UI ---
+        function renderTabContent(tab) {
+            state.activeTab = tab;
+            ['users', 'instructor', 'questions', 'assign', 'history'].forEach(t => {
+                const el = document.getElementById('nt-' + t);
+                if (t === tab) { el.classList.remove('border-transparent', 'text-slate-400'); el.classList.add('border-blue-600', 'text-blue-600'); }
+                else { el.classList.add('border-transparent', 'text-slate-400'); el.classList.remove('border-blue-600', 'text-blue-600'); }
+            });
+            document.getElementById('dynamic-content').className = "flex-1 max-w-7xl w-full mx-auto p-4 md:p-8 page-fade";
+            
+            if (tab === 'users') renderUserData();
+            else if (tab === 'instructor') renderInstructorData();
+            else if (tab === 'questions') renderQuestionData();
+            else if (tab === 'assign') renderAssignment();
+            else if (tab === 'history') renderHistoryData();
+        }
+
+        function formatDisplayDate(dStr) {
+            if(!dStr) return '-';
+            const parts = dStr.split('-');
+            if(parts.length !== 3) return dStr;
+            const d = new Date(parts[0], parts[1]-1, parts[2]);
+            return d.toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' });
+        }
+
+        // --- USER DATA ---
+        function renderUserData() {
+            let html = `<div class="mb-6"><h2 class="text-xl font-bold">User Database</h2></div><div class="bg-white rounded-3xl shadow-sm overflow-hidden border border-slate-100"><table class="w-full text-left border-collapse"><thead class="bg-slate-50 border-b"><tr><th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase">Name</th><th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase">Email</th><th class="px-6 py-4 text-right text-[10px] font-black text-slate-400 uppercase tracking-widest">Action</th></tr></thead><tbody class="divide-y divide-slate-50">`;
+            state.users.forEach(u => { html += `<tr class="hover:bg-slate-50/50 transition-colors"><td class="px-6 py-4 font-bold text-slate-800 text-sm">${u.name} <span class="ml-2 px-2 py-0.5 bg-blue-50 text-blue-600 text-[9px] rounded-full uppercase">${u.rank}</span></td><td class="px-6 py-4 text-xs text-slate-500">${u.username}</td><td class="px-6 py-4 text-right"><button onclick="viewUserDetail(${u.id})" class="text-[10px] font-bold text-blue-600 uppercase tracking-widest hover:text-blue-800">Detail</button></td></tr>`; });
+            document.getElementById('dynamic-content').innerHTML = html + `</tbody></table></div>`;
+        }
+
+        function viewUserDetail(uid) {
+            const u = state.users.find(x => x.id === uid);
+            document.getElementById('modal-title').innerText = `Profile: ${u.name}`;
+            document.getElementById('modal-body').innerHTML = `
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="p-4 bg-white border border-slate-100 rounded-2xl"><p class="text-[9px] font-black text-slate-400 uppercase">Email</p><p class="text-sm font-bold text-slate-800">${u.username}</p></div>
+                    <div class="p-4 bg-white border border-slate-100 rounded-2xl"><p class="text-[9px] font-black text-slate-400 uppercase">Rank</p><p class="text-sm font-bold text-blue-600">${u.rank}</p></div>
+                    <div class="p-4 bg-white border border-slate-100 rounded-2xl"><p class="text-[9px] font-black text-slate-400 uppercase">License</p><p class="text-sm font-bold text-slate-800">${u.license}</p></div>
+                    <div class="p-4 bg-white border border-slate-100 rounded-2xl"><p class="text-[9px] font-black text-slate-400 uppercase">Password</p><p class="text-sm font-bold text-slate-800">${u.password}</p></div>
+                    
+                    <div class="p-4 bg-white border border-slate-100 rounded-2xl col-span-2 overflow-hidden">
+                        <p class="text-[9px] font-black text-slate-400 uppercase mb-3">Signature Tag / Sign URL</p>
+                        ${u.signUrl ? `
+                            <div class="h-20 mb-3 border border-dashed border-slate-200 rounded-xl flex items-center justify-center p-2 bg-slate-50">
+                                ${u.signUrl}
+                            </div>
+                            <p class="text-[10px] font-mono text-slate-500 truncate bg-slate-50 p-2 rounded-lg border border-slate-100">${u.signUrl.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p>
+                        ` : `<p class="text-xs font-medium text-slate-400 italic">No signature data</p>`}
+                    </div>
+                </div>
+            `;
+            document.getElementById('modal-footer').innerHTML = `<button onclick="deleteUser(${u.id})" class="mr-auto px-4 py-2 text-xs font-bold text-red-500 uppercase">Delete User</button><button onclick="closeModal()" class="px-4 py-2 text-xs font-bold text-slate-400">Close</button><button onclick="openEditUser(${u.id})" class="px-8 py-2.5 bg-blue-600 text-white rounded-xl text-xs font-black uppercase">Edit Data</button>`;
+            document.getElementById('modal-container').classList.remove('hidden');
+        }
+
+        function openEditUser(uid) {
+            const u = state.users.find(x => x.id === uid);
+            document.getElementById('modal-body').innerHTML = `
+                <div class="space-y-4">
+                    <input type="text" id="eu-name" value="${u.name}" class="w-full p-3 border rounded-xl text-sm" placeholder="Name">
+                    <input type="text" id="eu-pass" value="${u.password}" class="w-full p-3 border rounded-xl text-sm" placeholder="Password">
+                    <div class="grid grid-cols-2 gap-3">
+                        <select id="eu-rank" class="p-3 border rounded-xl text-sm">${state.lookups.ranks.map(r=>`<option value="${r}" ${u.rank===r?'selected':''}>${r}</option>`).join('')}</select>
+                        <select id="eu-rating" class="p-3 border rounded-xl text-sm">${state.lookups.ratings.map(r=>`<option value="${r}" ${u.rating===r?'selected':''}>${r}</option>`).join('')}</select>
+                    </div>
+                    <input type="text" id="eu-license" value="${u.license}" class="w-full p-3 border rounded-xl text-sm" placeholder="License">
+                    
+                    <div class="pt-2 border-t border-slate-100">
+                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 mt-2">Signature Preview</p>
+                        <div id="sign-preview-box" class="w-full h-20 bg-slate-50 border border-slate-200 rounded-xl mb-3 flex items-center justify-center p-2 overflow-hidden">
+                            ${u.signUrl ? u.signUrl : '<span class="text-[10px] text-slate-400 italic">No signature yet</span>'}
+                        </div>
+                        <textarea id="eu-sign" oninput="document.getElementById('sign-preview-box').innerHTML = this.value || '<span class=\\'text-[10px] text-slate-400 italic\\'>No signature yet</span>'" rows="2" class="w-full p-3 border border-slate-200 rounded-xl text-xs font-mono bg-white outline-none focus:border-blue-500 transition-colors" placeholder='Paste Signature Tag here, e.g. <img src="..." />'>${u.signUrl || ''}</textarea>
+                    </div>
+                </div>
+            `;
+            document.getElementById('modal-footer').innerHTML = `<button onclick="viewUserDetail(${uid})" class="px-4 py-2 text-xs font-bold text-slate-400">Back</button><button onclick="saveUserEdit(${uid})" class="px-8 py-2.5 bg-green-600 text-white rounded-xl text-xs font-black uppercase shadow-lg">Save</button>`;
+        }
+
+        function saveUserEdit(uid) {
+            const u = state.users.find(x => x.id === uid);
+            u.name = document.getElementById('eu-name').value; u.password = document.getElementById('eu-pass').value;
+            u.rank = document.getElementById('eu-rank').value; u.rating = document.getElementById('eu-rating').value;
+            u.license = document.getElementById('eu-license').value;
+            u.signUrl = document.getElementById('eu-sign').value; 
+            syncToCloud(); viewUserDetail(uid); renderUserData();
+        }
+
+        function deleteUser(uid) {
+            if(confirm('Delete this user?')) { state.users = state.users.filter(x => x.id !== uid); syncToCloud(); closeModal(); renderUserData(); }
+        }
+
+        // --- INSTRUCTOR DATA ---
+        function renderInstructorData() {
+            let html = `<div class="flex justify-between items-center mb-6"><div><h2 class="text-xl font-bold">Instructors</h2></div><button onclick="openInstructorModal('add')" class="bg-blue-600 text-white px-5 py-2.5 rounded-xl text-xs font-bold uppercase shadow-lg shadow-blue-100 tracking-widest">+ Add</button></div><div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">`;
+            state.instructors.forEach(i => { html += `<div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100"><h4 class="font-bold text-slate-800 text-sm mb-1">${i.name}</h4><p class="text-[10px] text-slate-400 uppercase tracking-widest font-black mb-4">LOA: ${i.loaNo}</p><div class="flex gap-2"><button onclick="openInstructorModal('edit', ${i.id})" class="flex-1 py-2 bg-slate-50 text-slate-600 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-slate-100">Edit</button><button onclick="deleteInstructor(${i.id})" class="py-2 px-3 bg-red-50 text-red-500 rounded-lg hover:bg-red-100">&times;</button></div></div>`; });
+            document.getElementById('dynamic-content').innerHTML = html + `</div>`;
+        }
+
+        function openInstructorModal(mode, id) {
+            const i = mode === 'edit' ? state.instructors.find(x => x.id === id) : { name: '', loaNo: '', signUrl: '' };
+            document.getElementById('modal-title').innerText = mode === 'edit' ? "Edit Instructor" : "Add Instructor";
+            document.getElementById('modal-body').innerHTML = `
+                <div class="space-y-4">
+                    <input type="text" id="in-name" value="${i.name}" class="w-full p-4 border border-slate-200 rounded-xl text-sm outline-none focus:border-blue-500 transition-colors" placeholder="Full Name">
+                    <input type="text" id="in-loa" value="${i.loaNo}" class="w-full p-4 border border-slate-200 rounded-xl text-sm outline-none focus:border-blue-500 transition-colors" placeholder="LOA No.">
+                    
+                    <div class="pt-2 border-t border-slate-100">
+                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 mt-2">Signature Preview</p>
+                        <div id="inst-sign-preview-box" class="w-full h-20 bg-slate-50 border border-slate-200 rounded-xl mb-3 flex items-center justify-center p-2 overflow-hidden">
+                            ${i.signUrl ? i.signUrl : '<span class="text-[10px] text-slate-400 italic">No signature yet</span>'}
+                        </div>
+                        <textarea id="in-sign" oninput="document.getElementById('inst-sign-preview-box').innerHTML = this.value || '<span class=\\'text-[10px] text-slate-400 italic\\'>No signature yet</span>'" rows="2" class="w-full p-3 border border-slate-200 rounded-xl text-xs font-mono bg-white outline-none focus:border-blue-500 transition-colors" placeholder='Paste Signature Tag here, e.g. <img src="..." />'>${i.signUrl || ''}</textarea>
+                    </div>
+                </div>
+            `;
+            document.getElementById('modal-footer').innerHTML = `<button onclick="closeModal()" class="px-4 py-2 text-xs font-bold text-slate-400 hover:text-slate-600 transition-colors">Cancel</button><button onclick="saveInstructor(${mode==='edit'?id:'null'})" class="px-8 py-2.5 bg-blue-600 text-white rounded-xl text-xs font-black shadow-lg shadow-blue-100 uppercase tracking-widest hover:bg-blue-700 transition-all">Save Data</button>`;
+            document.getElementById('modal-container').classList.remove('hidden');
+        }
+
+        function saveInstructor(id) {
+            const n = document.getElementById('in-name').value, l = document.getElementById('in-loa').value;
+            const s = document.getElementById('in-sign').value; 
+            if (!n || !l) return;
+            if (id) { const i = state.instructors.find(x => x.id === id); i.name = n; i.loaNo = l; i.signUrl = s; } 
+            else { state.instructors.push({ id: Date.now(), name: n, loaNo: l, rating: 'B412', signUrl: s }); }
+            syncToCloud(); closeModal(); renderInstructorData();
+        }
+
+        function deleteInstructor(id) { if(confirm('Delete?')) { state.instructors = state.instructors.filter(x => x.id !== id); syncToCloud(); renderInstructorData(); } }
+
+        // --- EXAM BANKS ---
+        function renderQuestionData() {
+            let html = `<div class="flex justify-between items-center mb-6"><div><h2 class="text-xl font-bold">Exam Banks</h2></div><button onclick="openSetModal()" class="bg-blue-600 text-white px-5 py-2.5 rounded-xl text-xs font-bold uppercase shadow-lg shadow-blue-100 tracking-widest">+ New Set</button></div><div class="grid grid-cols-1 lg:grid-cols-2 gap-4">`;
+            state.questionSets.forEach(s => { html += `<div onclick="viewSetDetails(${s.id})" class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 cursor-pointer hover:border-blue-300 transition-colors group"><div class="flex justify-between items-start mb-2"><span class="text-[9px] font-black uppercase px-2 py-1 bg-slate-100 text-slate-500 rounded">${s.category}</span><span class="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded-lg group-hover:bg-blue-100">${s.questions.length} Qs</span></div><h4 class="font-bold text-slate-800 text-sm">${s.title}</h4></div>`; });
+            document.getElementById('dynamic-content').innerHTML = html + `</div>`;
+        }
+
+        function openSetModal() {
+            document.getElementById('modal-title').innerText = "Create Exam Set";
+            document.getElementById('modal-body').innerHTML = `
+                <div class="space-y-4">
+                    <select id="cs-cat" onchange="toggleSetOptions()" class="w-full p-4 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 outline-none"><option value="Type Rating">Type Rating Exam</option><option value="Mandatory Training">Mandatory Training</option></select>
+                    <input type="text" id="cs-title" class="w-full p-4 border border-slate-200 rounded-xl text-sm" placeholder="Set Title (e.g. Recurrent Type Rating Bell 412 EP)">
+                    <div id="cs-t-opt" class="grid grid-cols-2 gap-3"><select id="cs-rating" class="p-3 border rounded-xl text-sm">${state.lookups.ratings.map(r=>`<option value="${r}">${r}</option>`).join('')}</select><select id="cs-model" class="p-3 border rounded-xl text-sm"><option value="Model A">Model A</option><option value="Model B">Model B</option><option value="Model C">Model C</option></select></div>
+                    <div id="cs-m-opt" class="hidden"><input type="text" id="cs-mand-type" class="w-full p-3 border rounded-xl text-sm" placeholder="Training Type (e.g. CRM, DG, SMS)"></div>
+                    <select id="cs-type" class="w-full p-3 border rounded-xl text-sm"><option value="Initial">Initial</option><option value="Recurrent">Recurrent</option><option value="Upgrade">Upgrade</option></select>
+                </div>
+            `;
+            document.getElementById('modal-footer').innerHTML = `<button onclick="closeModal()" class="px-4 py-2 text-xs font-bold text-slate-400">Cancel</button><button onclick="saveSet()" class="px-8 py-2.5 bg-blue-600 text-white rounded-xl text-xs font-black uppercase shadow-lg shadow-blue-100">Create</button>`;
+            document.getElementById('modal-container').classList.remove('hidden');
+        }
+
+        function toggleSetOptions() {
+            const c = document.getElementById('cs-cat').value;
+            document.getElementById('cs-t-opt').classList.toggle('hidden', c !== 'Type Rating');
+            document.getElementById('cs-m-opt').classList.toggle('hidden', c !== 'Mandatory Training');
+        }
+
+        function saveSet() {
+            const cat = document.getElementById('cs-cat').value;
+            const newSet = { id: Date.now(), category: cat, title: document.getElementById('cs-title').value, type: document.getElementById('cs-type').value, questions: [] };
+            if (cat === 'Type Rating') { newSet.rating = document.getElementById('cs-rating').value; newSet.model = document.getElementById('cs-model').value; }
+            else { newSet.mandatoryType = document.getElementById('cs-mand-type').value; }
+            state.questionSets.push(newSet); syncToCloud(); closeModal(); renderQuestionData();
+        }
+
+        function viewSetDetails(id) {
+            const set = state.questionSets.find(s => s.id === id);
+            document.getElementById('dynamic-content').className = "flex-1 w-full mx-auto p-0 page-fade";
+            let html = `
+                <div class="bg-white border-b border-slate-100 sticky top-16 z-40 shadow-sm"><div class="max-w-4xl mx-auto p-4 md:p-6 flex justify-between items-center"><div class="flex items-center gap-4"><button onclick="renderTabContent('questions')" class="w-8 h-8 flex items-center justify-center rounded-full bg-slate-50 hover:bg-slate-100 text-slate-500 font-bold">&larr;</button><div><h2 class="text-lg font-black text-slate-800 leading-tight">${set.title}</h2><p class="text-[10px] uppercase font-bold text-blue-500 tracking-widest">${set.category}</p></div></div><div class="flex gap-2"><button onclick="openQuestionModal(${id})" class="px-4 py-2 bg-blue-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-md">+ Q</button><button onclick="deleteSet(${id})" class="px-3 py-2 bg-red-50 text-red-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-red-100">DEL SET</button></div></div></div>
+                <div class="max-w-4xl mx-auto p-4 md:p-6 space-y-4">
+            `;
+            if (set.questions.length === 0) { html += `<div class="text-center p-12 bg-slate-50 rounded-3xl border border-dashed border-slate-200"><p class="text-sm font-bold text-slate-400 mb-4">No questions yet.</p></div>`; }
+            else {
+                html += `<div class="flex justify-end"><button onclick="deleteAllQuestions(${id})" class="text-[10px] font-black text-red-400 uppercase tracking-widest hover:text-red-600">Purge All</button></div>`;
+                set.questions.forEach((q, i) => {
+                    html += `<div class="bg-white p-5 md:p-6 rounded-2xl shadow-sm border border-slate-100 relative group"><div class="absolute top-4 right-4 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity"><button onclick="openQuestionModal(${id}, ${q.id})" class="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 text-xs">Edit</button><button onclick="removeQuestion(${id}, ${q.id})" class="p-2 bg-red-50 text-red-500 rounded-lg hover:bg-red-100 text-xs">&times;</button></div><span class="text-[9px] font-black bg-slate-100 text-slate-500 px-2 py-1 rounded uppercase">${q.section}</span><p class="font-bold text-sm text-slate-800 mt-3 mb-4 pr-16">${i+1}. ${q.text}</p><div class="grid grid-cols-1 md:grid-cols-2 gap-2"><div class="p-2.5 rounded-xl border ${q.answer==='A'?'border-green-400 bg-green-50':'border-slate-50 bg-slate-50'} text-xs text-slate-600"><span class="font-black mr-2 ${q.answer==='A'?'text-green-600':'text-slate-400'}">A</span>${q.options.A}</div><div class="p-2.5 rounded-xl border ${q.answer==='B'?'border-green-400 bg-green-50':'border-slate-50 bg-slate-50'} text-xs text-slate-600"><span class="font-black mr-2 ${q.answer==='B'?'text-green-600':'text-slate-400'}">B</span>${q.options.B}</div><div class="p-2.5 rounded-xl border ${q.answer==='C'?'border-green-400 bg-green-50':'border-slate-50 bg-slate-50'} text-xs text-slate-600"><span class="font-black mr-2 ${q.answer==='C'?'text-green-600':'text-slate-400'}">C</span>${q.options.C}</div><div class="p-2.5 rounded-xl border ${q.answer==='D'?'border-green-400 bg-green-50':'border-slate-50 bg-slate-50'} text-xs text-slate-600"><span class="font-black mr-2 ${q.answer==='D'?'text-green-600':'text-slate-400'}">D</span>${q.options.D}</div></div></div>`;
+                });
+            }
+            document.getElementById('dynamic-content').innerHTML = html + `</div>`;
+        }
+
+        function openQuestionModal(setId, qId = null) {
+            let q = { section: 'General', text: '', options: {A:'', B:'', C:'', D:''}, answer: 'A' };
+            if (qId) { q = state.questionSets.find(s => s.id === setId).questions.find(item => item.id === qId); }
+            document.getElementById('modal-title').innerText = qId ? "Edit Question" : "Add Question";
+            document.getElementById('modal-body').innerHTML = `
+                <div class="space-y-4">
+                    <input type="text" id="eq-sect" value="${q.section}" class="w-full p-3 border rounded-xl text-sm font-bold bg-slate-50" placeholder="Section (e.g. General, Limitations)">
+                    <textarea id="eq-text" rows="3" class="w-full p-3 border rounded-xl text-sm" placeholder="Question text...">${q.text}</textarea>
+                    <div class="space-y-2">
+                        <div class="flex items-center gap-2"><span class="font-black text-slate-400 w-4">A</span><input type="text" id="eq-a" value="${q.options.A}" class="flex-1 p-2.5 border rounded-lg text-sm"></div>
+                        <div class="flex items-center gap-2"><span class="font-black text-slate-400 w-4">B</span><input type="text" id="eq-b" value="${q.options.B}" class="flex-1 p-2.5 border rounded-lg text-sm"></div>
+                        <div class="flex items-center gap-2"><span class="font-black text-slate-400 w-4">C</span><input type="text" id="eq-c" value="${q.options.C}" class="flex-1 p-2.5 border rounded-lg text-sm"></div>
+                        <div class="flex items-center gap-2"><span class="font-black text-slate-400 w-4">D</span><input type="text" id="eq-d" value="${q.options.D}" class="flex-1 p-2.5 border rounded-lg text-sm"></div>
+                    </div>
+                    <div><label class="text-[10px] font-black text-slate-400 uppercase block mb-1">Correct Answer</label><select id="eq-ans" class="w-full p-3 border rounded-xl text-sm font-bold bg-blue-50 text-blue-700 outline-none"><option value="A" ${q.answer==='A'?'selected':''}>Option A</option><option value="B" ${q.answer==='B'?'selected':''}>Option B</option><option value="C" ${q.answer==='C'?'selected':''}>Option C</option><option value="D" ${q.answer==='D'?'selected':''}>Option D</option></select></div>
+                </div>
+            `;
+            document.getElementById('modal-footer').innerHTML = `<button onclick="closeModal()" class="px-4 py-2 text-xs font-bold text-slate-400">Cancel</button><button onclick="${qId ? `saveQuestionEdit(${setId}, ${qId})` : `saveQuestionAdd(${setId})`}" class="px-8 py-2.5 bg-blue-600 text-white rounded-xl text-xs font-black shadow-lg">Save</button>`;
+            document.getElementById('modal-container').classList.remove('hidden');
+        }
+
+        function saveQuestionAdd(setId) {
+            const set = state.questionSets.find(s => s.id === setId);
+            const nQ = { id: set.questions.length + 1, section: document.getElementById('eq-sect').value, text: document.getElementById('eq-text').value, options: { A: document.getElementById('eq-a').value, B: document.getElementById('eq-b').value, C: document.getElementById('eq-c').value, D: document.getElementById('eq-d').value }, answer: document.getElementById('eq-ans').value };
+            set.questions.push(nQ); syncToCloud(); closeModal(); viewSetDetails(setId);
+        }
+
+        function saveQuestionEdit(setId, qId) {
+            const q = state.questionSets.find(s => s.id === setId).questions.find(item => item.id === qId);
+            q.section = document.getElementById('eq-sect').value; q.text = document.getElementById('eq-text').value;
+            q.options = { A: document.getElementById('eq-a').value, B: document.getElementById('eq-b').value, C: document.getElementById('eq-c').value, D: document.getElementById('eq-d').value };
+            q.answer = document.getElementById('eq-ans').value;
+            syncToCloud(); viewSetDetails(setId);
+        }
+
+        function removeQuestion(setId, qId) {
+            promptVerify(() => {
+                if (confirm('Delete this question?')) {
+                    const set = state.questionSets.find(s => s.id === setId);
+                    set.questions = set.questions.filter(q => q.id !== qId);
+                    set.questions.forEach((q, i) => q.id = i + 1);
+                    syncToCloud(); viewSetDetails(setId);
+                }
+            });
+        }
+
+        function deleteAllQuestions(setId) {
+            promptVerify(() => {
+                if (confirm('Purge all questions in this set?')) { 
+                    state.questionSets.find(s => s.id === setId).questions = []; 
+                    syncToCloud(); 
+                    viewSetDetails(setId); 
+                }
+            });
+        }
+
+        function deleteSet(setId) {
+            promptVerify(() => {
+                if (confirm('Delete entire set?')) { 
+                    state.questionSets = state.questionSets.filter(s => s.id !== setId); 
+                    syncToCloud(); 
+                    renderTabContent(state.activeTab); 
+                }
+            });
+        }
+
+        // --- ASSIGNMENTS ---
+        function renderAssignment() {
+            let html = `<div class="flex justify-between items-center mb-6"><div><h2 class="text-xl font-bold">Assignments</h2><p class="text-xs text-slate-500">Dispatch exams to pilots.</p></div><button onclick="openAssignModal()" class="bg-blue-600 text-white px-5 py-2.5 rounded-xl text-xs font-bold uppercase shadow-lg shadow-blue-100 tracking-widest">New Assignment</button></div><div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">`;
+            
+            state.assignments.forEach(a => {
+                const isC = a.status === 'COMPLETED';
+                html += `<div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 relative group"><div class="flex justify-between items-start mb-4"><span class="px-3 py-1 rounded-full text-[9px] font-black uppercase ${isC?'bg-green-100 text-green-700':a.status==='IN PROGRESS'?'bg-blue-100 text-blue-700':'bg-amber-100 text-amber-700'}">${a.status}</span><button onclick="deleteAssign(${a.id})" class="text-slate-300 hover:text-red-500">&times;</button></div><h4 class="text-lg font-black text-slate-900 leading-tight">${a.userName}</h4><p class="text-xs font-bold text-blue-600 mb-4 truncate">${a.examTitle}</p><div class="space-y-1 text-[11px] text-slate-500 pt-4 border-t border-slate-50"><p>📅 Exam: <b>${formatDisplayDate(a.examDate)}</b></p><p>⏰ Time: <b>${a.examTime || '-'}</b> &nbsp; ⏳ Duration: <b>${a.duration || '-'}</b></p><p class="italic text-slate-700 font-bold">👨‍✈️ ${a.instructor}</p></div></div>`;
+            });
+            document.getElementById('dynamic-content').innerHTML = html + `</div>`;
+        }
+
+        function openAssignModal() {
+            document.getElementById('modal-title').innerText = "Assign Exam Task";
+            document.getElementById('modal-body').innerHTML = `
+                <div class="space-y-6">
+                    <div><label class="text-[10px] font-black text-slate-400 uppercase block mb-2 tracking-widest">Assign to (Multi-select)</label>
+                    <div class="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto p-2 border rounded-2xl bg-white no-scrollbar">${state.users.map(u=>{ const r = u.rating ? (u.rating.includes('(') ? u.rating.split('(')[1].replace(')','') : u.rating) : '-'; return `<div><input type="checkbox" id="ucb-${u.id}" value="${u.id}" data-name="${u.name}" class="ucb hidden custom-checkbox"><label for="ucb-${u.id}" class="flex items-center px-3 py-2 bg-slate-50 border border-transparent rounded-lg text-[10px] font-black text-slate-600 cursor-pointer hover:bg-slate-100 transition-all truncate" title="${u.name} (${r})">${u.name} <span class="text-blue-500 ml-1">(${r})</span></label></div>`}).join('')}</div></div>
+                    <div class="flex p-1 bg-slate-100 rounded-2xl"><button onclick="toggleAssignCat('type')" id="tab-t" class="flex-1 py-2.5 text-[9px] font-black rounded-xl bg-white text-blue-600 shadow-sm">TYPE RATING</button><button onclick="toggleAssignCat('mand')" id="tab-m" class="flex-1 py-2.5 text-[9px] font-black rounded-xl text-slate-500">MANDATORY</button></div>
+                    <div id="col-t"><select id="as-t" class="w-full p-3 border rounded-xl text-sm font-bold"><option value="">-- Choose Type Rating Exam --</option>${state.questionSets.filter(q=>q.category==='Type Rating').map(q=>`<option value="${q.title}">${q.title}</option>`).join('')}</select></div>
+                    <div id="col-m" class="hidden"><select id="as-m" class="w-full p-3 border rounded-xl text-sm font-bold"><option value="">-- Choose Mandatory Exam --</option>${state.questionSets.filter(q=>q.category==='Mandatory Training').map(q=>`<option value="${q.title}">${q.title}</option>`).join('')}</select></div>
+                    <div><select id="as-inst" class="w-full p-3 border rounded-xl text-sm italic font-medium"><option value="">-- Select Instructor --</option>${state.instructors.map(i=>`<option value="${i.name} (${i.loaNo})">${i.name} (${i.loaNo})</option>`).join('')}</select></div>
+                    
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="text-[10px] font-black text-slate-400 uppercase block mb-2 tracking-widest">Exam Date</label>
+                            <input type="date" id="as-date" class="w-full p-3 border rounded-xl text-sm">
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-black text-slate-400 uppercase block mb-2 tracking-widest">Exam Time</label>
+                            <input type="time" id="as-time" class="w-full p-3 border rounded-xl text-sm">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="text-[10px] font-black text-slate-400 uppercase block mb-2 tracking-widest">Duration (Hours)</label>
+                            <input type="number" id="as-dur-h" min="0" class="w-full p-3 border rounded-xl text-sm" placeholder="e.g. 1">
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-black text-slate-400 uppercase block mb-2 tracking-widest">Duration (Mins)</label>
+                            <input type="number" id="as-dur-m" min="0" max="59" class="w-full p-3 border rounded-xl text-sm" placeholder="e.g. 30">
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.getElementById('modal-footer').innerHTML = `<button onclick="closeModal()" class="px-4 py-2 text-xs font-bold text-slate-400">Cancel</button><button onclick="saveAssign()" class="px-10 py-3 bg-blue-600 text-white rounded-xl text-xs font-black shadow-lg uppercase tracking-widest">Assign Now</button>`;
+            document.getElementById('modal-container').classList.remove('hidden');
+        }
+
+        function toggleAssignCat(c) {
+            document.getElementById('col-t').classList.toggle('hidden', c !== 'type'); document.getElementById('col-m').classList.toggle('hidden', c !== 'mand');
+            document.getElementById('tab-t').className = c === 'type' ? "flex-1 py-2.5 text-[9px] font-black rounded-xl bg-white text-blue-600 shadow-sm" : "flex-1 py-2.5 text-[9px] font-black rounded-xl text-slate-500";
+            document.getElementById('tab-m').className = c === 'mand' ? "flex-1 py-2.5 text-[9px] font-black rounded-xl bg-white text-blue-600 shadow-sm" : "flex-1 py-2.5 text-[9px] font-black rounded-xl text-slate-500";
+        }
+
+        function saveAssign() {
+            const cbx = document.querySelectorAll('.ucb:checked');
+            if(cbx.length === 0) return alert('Select at least 1 user.');
+            const isType = !document.getElementById('col-t').classList.contains('hidden');
+            const exTitle = isType ? document.getElementById('as-t').value : document.getElementById('as-m').value;
+            const inst = document.getElementById('as-inst').value;
+            const eDate = document.getElementById('as-date').value;
+            
+            if(!exTitle || !inst || !eDate) return alert('Complete all required fields.');
+
+            let durStr = '';
+            const h = document.getElementById('as-dur-h').value, m = document.getElementById('as-dur-m').value;
+            if (h) durStr += `${h}h `; if (m) durStr += `${m}m`;
+            durStr = durStr.trim();
+
+            const today = new Date().toISOString().split('T')[0];
+            cbx.forEach(c => {
+                state.assignments.push({ id: Date.now() + Math.random(), userId: Number(c.value), userName: c.dataset.name, examTitle: exTitle, instructor: inst, assignedDate: today, examDate: eDate, examTime: document.getElementById('as-time').value, duration: durStr, status: 'NOT STARTED', score: null, grade: null });
+            });
+            syncToCloud(); closeModal(); renderAssignment();
+        }
+
+        function deleteAssign(id) { if(confirm('Delete assignment?')) { state.assignments = state.assignments.filter(x => x.id !== id); syncToCloud(); renderAssignment(); } }
+
+        // --- HISTORY ---
+        function renderHistoryData() {
+            const completed = state.assignments.filter(a => a.status === 'COMPLETED').sort((a,b) => new Date(b.examDate) - new Date(a.examDate));
+            let html = `<div class="mb-6"><h2 class="text-xl font-bold">Exam History</h2></div><div class="bg-white rounded-3xl shadow-sm overflow-hidden border border-slate-100"><div class="overflow-x-auto"><table class="w-full text-left border-collapse min-w-[800px]"><thead class="bg-slate-50 border-b"><tr><th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase">Trainee / Candidate</th><th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase">Exam Title</th><th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase">Date</th><th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase">Score</th><th class="px-6 py-4 text-right text-[10px] font-black text-slate-400 uppercase tracking-widest">Result</th></tr></thead><tbody class="divide-y divide-slate-50">`;
+            
+            if(completed.length === 0) { html += `<tr><td colspan="5" class="px-6 py-12 text-center text-sm font-medium text-slate-400">No history found.</td></tr>`; }
+            else {
+                completed.forEach(a => {
+                    const isPass = a.score >= 75;
+                    html += `<tr class="hover:bg-slate-50/50 transition-colors"><td class="px-6 py-4 font-bold text-slate-800 text-sm">${a.userName}</td><td class="px-6 py-4 text-xs font-bold text-slate-600 truncate max-w-[200px]">${a.examTitle}</td><td class="px-6 py-4 text-xs text-slate-500">${formatDisplayDate(a.examDate)}</td><td class="px-6 py-4 font-black ${isPass?'text-green-600':'text-red-500'}">${a.score}%</td><td class="px-6 py-4 text-right"><button onclick="viewExamDetails(${a.id})" class="px-4 py-1.5 rounded-lg text-[10px] font-black tracking-widest uppercase ${isPass?'bg-green-50 text-green-600':'bg-red-50 text-red-600'} hover:opacity-80">View Doc</button></td></tr>`;
+                });
+            }
+            document.getElementById('dynamic-content').innerHTML = html + `</tbody></table></div></div>`;
+        }
+
+        function viewExamDetails(assignmentId) {
+            const a = state.assignments.find(x => x.id === assignmentId);
+            const u = state.users.find(x => x.id === a.userId);
+            if(!a || !u) return;
+
+            const titleLower = a.examTitle.toLowerCase();
+            const isInitialOrUpgrade = titleLower.includes('initial') || titleLower.includes('upgrade');
+            const isRecurrent = titleLower.includes('recurrent');
+            const term = isInitialOrUpgrade ? 'Trainee' : 'Candidate';
+
+            const instParts = a.instructor.split('(');
+            const instName = instParts[0].trim();
+            const instLOA = instParts[2] ? instParts[2].replace(')','').trim() : (instParts[1] ? instParts[1].replace(')','').trim() : '-');
+
+            const set = state.questionSets.find(q => q.title === a.examTitle);
+            const questions = set && set.questions.length > 0 ? set.questions : Array(10).fill({id: 0, text: 'Sample Question Text...', options: {A: 'Option A', B: 'Option B', C: 'Correct Option', D: 'Option D'}, answer: 'C'});
+            
+            const totalQs = questions.length;
+            const correctCount = Math.round((a.score / 100) * totalQs);
+            let answersHtml = '';
+            
+            for(let i=0; i<totalQs; i++) {
+                const q = questions[i];
+                const userAns = a.answers ? a.answers[q.id] : null; 
+                const isCorrect = userAns === q.answer;
+
+                if(isCorrect) {
+                    answersHtml += `
+                        <div class="mb-3 p-4 bg-green-50 border border-green-100 rounded-xl">
+                            <p class="font-bold text-sm text-slate-800 mb-1">Q${i+1}: ${q.text}</p>
+                            <p class="text-xs font-bold text-green-600">${q.answer}. ${q.options[q.answer]} ✓</p>
+                        </div>`;
+                } else {
+                    const wrongOptLabel = userAns ? `${userAns}. ${q.options[userAns] || ''}` : 'No Answer';
+                    answersHtml += `
+                        <div class="mb-3 p-4 bg-red-50 border border-red-100 rounded-xl">
+                            <p class="font-bold text-sm text-slate-800 mb-1">Q${i+1}: ${q.text}</p>
+                            <p class="text-xs font-bold text-red-500 mb-1">${wrongOptLabel} ✗</p>
+                            <p class="text-[10px] font-bold text-green-600">Correct: ${q.answer}. ${q.options[q.answer]}</p>
+                        </div>`;
+                }
+            }
+
+            const modal = document.getElementById('modal-container');
+            document.getElementById('modal-title').innerText = "Exam Result Details";
+            document.getElementById('modal-body').innerHTML = `
+                <div class="space-y-6">
+                    <div class="bg-white p-6 rounded-2xl border border-slate-200">
+                        <h4 class="font-black text-slate-800 uppercase tracking-widest text-xs mb-4 border-b pb-2">${term} INFORMATION</h4>
+                        <div class="grid grid-cols-2 gap-4 text-sm">
+                            <div><span class="text-slate-400 text-[10px] uppercase block">Name ${term}</span> <span class="font-bold text-slate-800">${u.name}</span></div>
+                            <div><span class="text-slate-400 text-[10px] uppercase block">Rank</span> <span class="font-bold text-slate-800">${u.rank}</span></div>
+                            <div><span class="text-slate-400 text-[10px] uppercase block">No. License</span> <span class="font-bold text-slate-800">${u.license}</span></div>
+                            <div><span class="text-slate-400 text-[10px] uppercase block">Name Instructor</span> <span class="font-bold text-slate-800">${instName}</span></div>
+                            <div><span class="text-slate-400 text-[10px] uppercase block">LOA Instructor</span> <span class="font-bold text-slate-800">${instLOA}</span></div>
+                            <div><span class="text-slate-400 text-[10px] uppercase block">Exam Date</span> <span class="font-bold text-slate-800">${formatDisplayDate(a.examDate)}</span></div>
+                            <div><span class="text-slate-400 text-[10px] uppercase block">Exam Time</span> <span class="font-bold text-slate-800">${a.examTime || '-'}</span></div>
+                            <div><span class="text-slate-400 text-[10px] uppercase block">Duration</span> <span class="font-bold text-slate-800">${a.duration || '-'}</span></div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-6 rounded-2xl border border-slate-200 text-center shadow-inner">
+                        <h4 class="font-black text-slate-800 uppercase tracking-widest text-xs mb-2">EXAMINATION RESULT</h4>
+                        <div class="text-5xl font-black ${a.score < 75 ? 'text-red-500' : 'text-green-500'} mb-2">${a.score}%</div>
+                        <div class="font-bold text-slate-800 text-sm uppercase">${a.grade} - ${correctCount} out of ${totalQs} correct</div>
+                        <div class="text-xs text-slate-500 mt-2">Passing Score: 75% | Result: ${a.score >= 75 ? '<span class="text-green-600 font-bold">✓ PASS</span>' : '<span class="text-red-500 font-bold">✗ FAIL</span>'}</div>
+                        ${isRecurrent ? `<div class="font-black text-xs mt-4 text-green-600 tracking-widest uppercase bg-green-50 inline-block px-3 py-1 rounded">CORRECTED TO 100%</div>` : ''}
+                    </div>
+
+                    <div class="bg-white p-6 rounded-2xl border border-slate-200">
+                        <h4 class="font-black text-slate-800 uppercase tracking-widest text-xs mb-4 border-b pb-2">ANSWER SUMMARY</h4>
+                        ${answersHtml}
+                    </div>
+                </div>
+            `;
+            document.getElementById('modal-footer').innerHTML = `
+                <button onclick="closeModal()" class="px-6 py-2.5 text-xs font-bold text-slate-400 hover:text-slate-600 uppercase tracking-wider">Close</button>
+                <button onclick="printExamResult(${assignmentId})" class="px-8 py-2.5 bg-blue-600 text-white rounded-xl text-xs font-black shadow-lg shadow-blue-100 uppercase tracking-widest flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+                    Print PDF
+                </button>
+            `;
+            modal.classList.remove('hidden');
+        }
+
+        function printExamResult(assignmentId) {
+            const a = state.assignments.find(x => x.id === assignmentId);
+            const u = state.users.find(x => x.id === a.userId);
+            if(!a || !u) return;
+
+            const titleLower = a.examTitle.toLowerCase();
+            const isInitialOrUpgrade = titleLower.includes('initial') || titleLower.includes('upgrade');
+            const isRecurrent = titleLower.includes('recurrent');
+            const term = isInitialOrUpgrade ? 'Trainee' : 'Candidate';
+
+            const instParts = a.instructor.split('(');
+            const instName = instParts[0].trim();
+            const instLOA = instParts[2] ? instParts[2].replace(')','').trim() : (instParts[1] ? instParts[1].replace(')','').trim() : '-');
+
+            const instObj = state.instructors.find(x => x.name === instName);
+            const instSignUrl = instObj ? instObj.signUrl : '';
+
+            const set = state.questionSets.find(q => q.title === a.examTitle);
+            const questions = set && set.questions.length > 0 ? set.questions : Array(10).fill({id: 0, text: 'Sample Question Text...', options: {A: 'Option A', B: 'Option B', C: 'Correct Option', D: 'Option D'}, answer: 'C'});
+            
+            const totalQs = questions.length;
+            const correctCount = Math.round((a.score / 100) * totalQs);
+            let answersHtml = '';
+            
+            for(let i=0; i<totalQs; i++) {
+                const q = questions[i];
+                const userAns = a.answers ? a.answers[q.id] : null;
+                const isCorrect = userAns === q.answer;
+
+                if(isCorrect) {
+                    answersHtml += `
+                        <div class="print-summary-item correct">
+                            <b>Q${i+1}: ${q.text}</b><br>
+                            ${q.answer}. ${q.options[q.answer]} ✓
+                        </div>`;
+                } else {
+                    const wrongOptLabel = userAns ? `${userAns}. ${q.options[userAns] || ''}` : 'No Answer';
+                    answersHtml += `
+                        <div class="print-summary-item wrong">
+                            <b>Q${i+1}: ${q.text}</b><br>
+                            ${wrongOptLabel} ✗ (Correct: ${q.answer}. ${q.options[q.answer]})
+                        </div>`;
+                }
+            }
+
+            const html = `
+                <div class="print-page">
+                    <div class="print-header">
+                        <img src="https://lh3.googleusercontent.com/d/1WNcGjsZ9_Fp54xzOl01EYRqM6-wY5Zh7" alt="TWA Logo" style="display: block; margin: 0 auto 15px auto; height: 70px; object-fit: contain;" />
+                        <h1>Transwisata Prima Aviation</h1>
+                        <h2>FLIGHT CREW EXAMINATION RESULT</h2>
+                        <h3>${a.examTitle}</h3>
+                        
+                        <div style="display: flex; justify-content: space-between; align-items: flex-end; font-size: 10pt; margin-top: 15px;">
+                            <div style="text-align: left; font-weight: bold; font-style: italic;">Online Examination Form</div>
+                            <div style="text-align: right;">Form No: ${state.formNo ? state.formNo.value : '-'}</div>
+                        </div>
+                    </div>
+
+                    <div class="print-section-title">${term.toUpperCase()} INFORMATION</div>
+                    <table class="print-table">
+                        <tr><td>Name ${term}:</td><td><b>${u.name}</b></td></tr>
+                        <tr><td>Rank:</td><td><b>${u.rank}</b></td></tr>
+                        <tr><td>No. License:</td><td><b>${u.license}</b></td></tr>
+                        <tr><td>Name Instructor:</td><td><b>${instName}</b></td></tr>
+                        <tr><td>LOA Instructor:</td><td><b>${instLOA}</b></td></tr>
+                        <tr><td>Exam Date:</td><td><b>${formatDisplayDate(a.examDate)}</b></td></tr>
+                        <tr><td>Exam Time:</td><td><b>${a.examTime || '-'}</b></td></tr>
+                        <tr><td>Duration:</td><td><b>${a.duration || '-'}</b></td></tr>
+                    </table>
+
+                    <div class="print-section-title" style="text-align: center;">EXAMINATION RESULT</div>
+                    <div class="print-result-box">
+                        <div class="print-score" style="color: ${a.score < 75 ? 'red' : 'green'};">${a.score}%</div>
+                        <div style="font-weight: bold; margin-bottom: 5px;">${a.grade} - ${correctCount} out of ${totalQs} correct</div>
+                        <div>Passing Score: 75% | Result: ${a.score >= 75 ? '✓ PASS' : '✗ FAIL'}</div>
+                        ${isRecurrent ? `<div style="font-weight: bold; margin-top: 10px; color: green;">CORRECTED TO 100%</div>` : ''}
+                    </div>
+
+                    <div class="print-section-title">ANSWER SUMMARY</div>
+                    <div>${answersHtml}</div>
+
+                    <div class="print-signatures">
+                        <div class="print-sig-box">
+                            <div class="print-sig-title">${term} Signature</div>
+                            <div class="print-sig-img">${u.signUrl || ''}</div>
+                            <div class="print-sig-name">${u.name}</div>
+                            <div class="print-sig-detail">${u.license || '-'}</div>
+                        </div>
+                        <div class="print-sig-box">
+                            <div class="print-sig-title">Examiner Signature</div>
+                            <div class="print-sig-img">${instSignUrl || ''}</div>
+                            <div class="print-sig-name">${instName}</div>
+                            <div class="print-sig-detail">${instLOA || '-'}</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('print-area').innerHTML = html;
+            
+            const images = Array.from(document.querySelectorAll('#print-area img'));
+            if (images.length > 0) {
+                const promises = images.map(img => {
+                    return new Promise(resolve => {
+                        if (img.complete) {
+                            resolve();
+                        } else {
+                            img.onload = resolve;
+                            img.onerror = resolve;
+                        }
+                    });
+                });
+                
+                Promise.all(promises).then(() => {
+                    window.print();
+                    setTimeout(() => { document.getElementById('print-area').innerHTML = ''; }, 1000);
+                });
+            } else {
+                window.print();
+                setTimeout(() => { document.getElementById('print-area').innerHTML = ''; }, 1000);
+            }
+        }
+
+        // --- USER PORTAL ---
+        function renderUserPortal() {
+            let html = `<div class="mb-8 page-fade"><h2 class="text-3xl font-black text-slate-800 tracking-tight">Welcome, ${state.currentUser.name}</h2><p class="text-slate-500 font-medium">Here are your assigned examination tasks.</p></div><div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 page-fade" style="animation-delay: 0.1s">`;
+            const myTasks = state.assignments.filter(a => a.userId === state.currentUser.id);
+            if (myTasks.length === 0) {
+                html += `<div class="col-span-full p-12 bg-white rounded-3xl shadow-sm border border-slate-100 text-center"><p class="text-slate-400 font-bold">No tasks assigned to you at the moment.</p></div>`;
+            } else {
+                myTasks.forEach(a => {
+                    const isDone = a.status === 'COMPLETED';
+                    const inProg = a.status === 'IN PROGRESS';
+                    html += `
+                        <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 flex flex-col relative overflow-hidden group">
+                            <div class="absolute top-0 right-0 p-4 opacity-10 transition-transform group-hover:scale-110"><svg class="w-20 h-20 text-blue-600" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"></path></svg></div>
+                            <div class="flex justify-between items-start mb-4 relative z-10"><span class="px-3 py-1 rounded-full text-[9px] font-black uppercase ${isDone?'bg-green-100 text-green-700':inProg?'bg-blue-100 text-blue-700':'bg-amber-100 text-amber-700'}">${a.status}</span></div>
+                            <h4 class="text-lg font-black text-slate-900 leading-tight mb-2 relative z-10">${a.examTitle}</h4>
+                            <div class="space-y-1 text-xs text-slate-500 mb-6 flex-1 relative z-10">
+                                <p class="flex items-center gap-2"><span class="w-4 text-center">📅</span> ${formatDisplayDate(a.examDate)}</p>
+                                <p class="flex items-center gap-2"><span class="w-4 text-center">⏰</span> ${a.examTime || '-'} <span class="mx-1 opacity-50">|</span> ⏳ ${a.duration || '-'}</p>
+                                <p class="flex items-center gap-2 font-bold text-slate-600 italic mt-2"><span class="w-4 text-center">👨‍✈️</span> ${a.instructor}</p>
+                            </div>
+                            <div class="relative z-10">
+                                ${isDone ? `
+                                    <div class="p-3 bg-slate-50 rounded-xl border border-slate-100 text-center"><p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Final Score</p><p class="text-2xl font-black ${a.score >= 75 ? 'text-green-500' : 'text-red-500'}">${a.score}%</p></div>
+                                ` : `
+                                    <button onclick="startRealExam(${a.id})" class="w-full py-4 ${inProg ? 'bg-amber-500 shadow-amber-200 hover:bg-amber-600' : 'bg-blue-600 shadow-blue-200 hover:bg-blue-700'} text-white rounded-xl text-xs font-black shadow-lg uppercase tracking-widest transition-colors">${inProg ? 'Resume Exam' : 'Start Exam'}</button>
+                                `}
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+            document.getElementById('dynamic-content').innerHTML = html + `</div>`;
+        }
+
+        function startRealExam(assignmentId) {
+            const a = state.assignments.find(x => x.id === assignmentId);
+            const set = state.questionSets.find(q => q.title === a.examTitle);
+
+            if (!set || !set.questions || set.questions.length === 0) return alert('Exam questions not found.');
+
+            const now = new Date();
+            const eDateParts = a.examDate.split('-');
+            
+            let durMins = 60;
+            if (a.duration) {
+                let h = 0, m = 0;
+                const hm = a.duration.match(/(\d+)h/);
+                const mm = a.duration.match(/(\d+)m/);
+                if (hm) h = parseInt(hm[1]);
+                if (mm) m = parseInt(mm[1]);
+                if (h > 0 || m > 0) durMins = (h * 60) + m;
+            }
+
+            let initialTimeLeft = durMins * 60;
+
+            if (eDateParts.length === 3) {
+                const eDate = new Date(eDateParts[0], eDateParts[1] - 1, eDateParts[2]);
+                eDate.setHours(0,0,0,0);
+                const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+                if (today < eDate) {
+                    return alert("The exam cannot be started because the assigned date has not been reached.");
+                }
+
+                if (today.getTime() === eDate.getTime() && a.examTime) {
+                    const tParts = a.examTime.split(':');
+                    if (tParts.length === 2) {
+                        const currMins = now.getHours() * 60 + now.getMinutes();
+                        const examMins = parseInt(tParts[0]) * 60 + parseInt(tParts[1]);
+                        const endMins = examMins + durMins; 
+                        
+                        if (currMins < examMins) {
+                            return alert("The exam cannot be started because the assigned time has not been reached.");
+                        } else if (currMins >= endMins) {
+                            return alert("Waktu ujian sudah habis.");
+                        } else {
+                            initialTimeLeft = (endMins - currMins) * 60;
+                        }
+                    }
+                }
+            }
+
+            let shuffledQuestions = [...set.questions];
+            for (let i = shuffledQuestions.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffledQuestions[i], shuffledQuestions[j]] = [shuffledQuestions[j], shuffledQuestions[i]];
+            }
+
+            window.activeExam = {
+                assignment: a,
+                set: set,
+                questions: shuffledQuestions,
+                currentIndex: 0,
+                answers: {},
+                timeLeft: initialTimeLeft,
+                timerId: null
+            };
+
+            a.status = 'IN PROGRESS';
+            syncToCloud(); 
+            
+            window.activeExam.timerId = setInterval(() => {
+                window.activeExam.timeLeft--;
+                if (window.activeExam.timeLeft <= 0) {
+                    clearInterval(window.activeExam.timerId);
+                    window.activeExam.timeLeft = 0; 
+                    alert("Waktu ujian sudah habis! Anda tidak dapat menjawab lagi. Silahkan tekan tombol submit.");
+                    renderActiveExamUI(); 
+                } else {
+                    updateTimerUI();
+                }
+            }, 1000);
+
+            renderActiveExamUI();
+        }
+
+        function updateTimerUI() {
+            const el = document.getElementById('exam-timer-display');
+            if (el && window.activeExam) {
+                const m = Math.floor(window.activeExam.timeLeft / 60).toString().padStart(2, '0');
+                const s = (window.activeExam.timeLeft % 60).toString().padStart(2, '0');
+                el.innerText = `${m}:${s}`;
+            }
+        }
+
+        function renderActiveExamUI() {
+            const ex = window.activeExam;
+            const q = ex.questions[ex.currentIndex];
+            const isLast = ex.currentIndex === ex.questions.length - 1;
+            const isFirst = ex.currentIndex === 0;
+            const timeUp = ex.timeLeft <= 0; 
+
+            let html = `
+                <div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden page-fade">
+                    <div class="bg-blue-600 p-6 text-white flex justify-between items-center">
+                        <div>
+                            <h3 class="font-black text-lg tracking-wider uppercase">${ex.set.title}</h3>
+                            <p class="text-xs text-blue-200 mt-1 uppercase tracking-widest">Question ${ex.currentIndex + 1} of ${ex.questions.length}</p>
+                        </div>
+                        <div class="bg-blue-800/50 px-4 py-2 rounded-xl border border-blue-500 text-center">
+                            <span class="text-[10px] uppercase font-bold text-blue-200 block mb-1">Time Remaining</span>
+                            <span id="exam-timer-display" class="font-mono font-bold text-2xl ${timeUp ? 'text-red-400' : ''}">--:--</span>
+                        </div>
+                    </div>
+                    
+                    <div class="p-8 md:p-12">
+                        <span class="text-[10px] font-black bg-blue-50 text-blue-600 px-3 py-1 rounded uppercase tracking-widest">${q.section}</span>
+                        <h4 class="text-xl font-bold text-slate-800 mt-6 mb-8 leading-relaxed">${ex.currentIndex + 1}. ${q.text}</h4>
+                        
+                        <div class="space-y-4">
+                            ${['A', 'B', 'C', 'D'].map(opt => {
+                                const optText = q.options[opt];
+                                if (!optText) return '';
+                                const isSelected = ex.answers[q.id] === opt;
+                                const cursorStyle = timeUp ? 'cursor-not-allowed opacity-70' : 'cursor-pointer hover:border-blue-300';
+                                return `
+                                    <div ${timeUp ? '' : `onclick="selectExamOption('${opt}')"`} class="p-5 border-2 rounded-2xl transition-all ${isSelected ? 'border-blue-600 bg-blue-50 shadow-md' : `border-slate-100 bg-white ${cursorStyle}`}">
+                                        <div class="flex items-center gap-4">
+                                            <div class="w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${isSelected ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-500'}">${opt}</div>
+                                            <span class="font-medium text-slate-700 text-base">${optText}</span>
+                                        </div>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-50 p-6 border-t border-slate-100 flex justify-between items-center">
+                        <button onclick="navigateExam(-1)" class="px-8 py-3 text-sm font-bold text-slate-500 hover:text-slate-800 uppercase tracking-widest transition-colors ${isFirst ? 'invisible' : ''}">Previous</button>
+                        ${(isLast || timeUp) ? `
+                            <button onclick="submitExam(${timeUp ? 'true' : 'false'})" class="px-10 py-3 ${timeUp ? 'bg-red-600 shadow-red-100 hover:bg-red-700 animate-pulse' : 'bg-green-600 shadow-green-100 hover:bg-green-700'} text-white rounded-xl text-sm font-black shadow-lg uppercase tracking-widest transition-colors">Submit Your Answer</button>
+                        ` : `
+                            <button onclick="navigateExam(1)" class="px-10 py-3 bg-blue-600 text-white rounded-xl text-sm font-black shadow-lg shadow-blue-100 uppercase tracking-widest hover:bg-blue-700 transition-colors">Next</button>
+                        `}
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('dynamic-content').innerHTML = html;
+            updateTimerUI(); 
+        }
+
+        function selectExamOption(opt) {
+            if (window.activeExam.timeLeft <= 0) return; 
+            window.activeExam.answers[window.activeExam.questions[window.activeExam.currentIndex].id] = opt;
+            renderActiveExamUI(); 
+            
+            if (window.activeExam.currentIndex < window.activeExam.questions.length - 1) {
+                setTimeout(() => navigateExam(1), 300);
+            }
+        }
+
+        function navigateExam(dir) {
+            window.activeExam.currentIndex += dir;
+            renderActiveExamUI();
+        }
+
+        function submitExam(force = false) {
+            if (force !== true && !confirm("Are you sure you want to submit your exam?")) return;
+            
+            const ex = window.activeExam;
+            clearInterval(ex.timerId);
+
+            let correctCount = 0;
+            ex.questions.forEach(q => {
+                if (ex.answers[q.id] === q.answer) correctCount++;
+            });
+
+            const score = Math.round((correctCount / ex.questions.length) * 100);
+            let grade = 'FAILED';
+            if (score === 100) grade = 'PERFECT';
+            else if (score >= 86) grade = 'EXCELLENT';
+            else if (score >= 75) grade = 'PASSED';
+
+            ex.assignment.status = 'COMPLETED';
+            ex.assignment.score = score;
+            ex.assignment.grade = grade;
+            ex.assignment.answers = ex.answers;
+
+            syncToCloud(); 
+            renderExamResultUserView(ex, score, grade, correctCount);
+        }
+
+        function renderExamResultUserView(ex, score, grade, correctCount) {
+            const isRecurrent = ex.assignment.examTitle.toLowerCase().includes('recurrent');
+            let sCl = "text-red-500";
+            if (score === 100) sCl = "text-gold";
+            else if (score >= 75) sCl = "text-green-500";
+
+            let answersHtml = '';
+            ex.questions.forEach((q, index) => {
+                const userAns = ex.answers[q.id];
+                const isCorrect = userAns === q.answer;
+                if(isCorrect) {
+                    answersHtml += `
+                        <div class="mb-3 p-5 bg-green-50 border border-green-100 rounded-xl">
+                            <p class="font-bold text-sm text-slate-800 mb-2">Q${index + 1}: ${q.text}</p>
+                            <p class="text-xs font-bold text-green-600">${q.answer}. ${q.options[q.answer]} ✓</p>
+                        </div>`;
+                } else {
+                    answersHtml += `
+                        <div class="mb-3 p-5 bg-red-50 border border-red-100 rounded-xl">
+                            <p class="font-bold text-sm text-slate-800 mb-2">Q${index + 1}: ${q.text}</p>
+                            <p class="text-xs font-bold text-red-500 mb-2">${userAns ? userAns + '. ' + q.options[userAns] : 'No Answer'} ✗</p>
+                            <p class="text-[10px] font-bold text-green-600">Correct: ${q.answer}. ${q.options[q.answer]}</p>
+                        </div>`;
+                }
+            });
+
+            let html = `
+                <div class="max-w-3xl mx-auto space-y-6 page-fade">
+                    <div class="bg-dark-card p-8 rounded-3xl shadow-2xl text-center border border-slate-700 relative overflow-hidden">
+                        <div class="absolute inset-0 opacity-20 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-blue-400 via-transparent to-transparent"></div>
+                        <h2 class="text-white text-sm font-black uppercase tracking-widest mb-4 relative z-10">EXAMINATION COMPLETED</h2>
+                        <div class="text-7xl font-black ${sCl} mb-4 relative z-10 drop-shadow-lg">${score}%</div>
+                        <div class="inline-block px-4 py-1 rounded-full ${score >= 75 ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'} font-bold text-sm uppercase tracking-widest relative z-10 mb-2">${grade}</div>
+                        <p class="text-slate-400 text-xs font-medium relative z-10">${correctCount} correct out of ${ex.questions.length} questions</p>
+                        ${isRecurrent ? `<p class="mt-4 text-green-400 font-bold text-xs uppercase tracking-widest relative z-10 border border-green-500/30 inline-block px-3 py-1 rounded bg-green-500/10">CORRECTED TO 100%</p>` : ''}
+                    </div>
+
+                    <div class="bg-white rounded-3xl shadow-sm border border-slate-100 p-8">
+                        <h3 class="text-lg font-black text-slate-800 uppercase tracking-widest mb-6 border-b border-slate-100 pb-4">Detailed Review</h3>
+                        <div class="space-y-2">
+                            ${answersHtml}
+                        </div>
+                    </div>
+                    
+                    <div class="text-center pt-4">
+                        <button onclick="renderUserPortal()" class="px-10 py-4 bg-slate-900 text-white rounded-xl text-sm font-black shadow-xl hover:bg-slate-800 uppercase tracking-widest transition-all">Back to Dashboard</button>
+                    </div>
+                </div>
+            `;
+            document.getElementById('dynamic-content').innerHTML = html;
+        }
+
+        // --- UTILS ---
+        function closeModal() { document.getElementById('modal-container').classList.add('hidden'); }
+    </script>
+</body>
+</html>
