@@ -107,17 +107,16 @@
 
         async function initFirebase() {
             try {
-                if (typeof __initial_auth_token !== 'undefined') {
-                    await signInWithCustomToken(window.auth, __initial_auth_token);
-                } else {
-                    await signInAnonymously(window.auth);
-                }
+                // PERBAIKAN: Mengabaikan token bawaan sandbox dan langsung menggunakan Anonymous Login
+                // Pastikan "Anonymous" Sign-in Method sudah diaktifkan di Firebase Console Anda.
+                await signInAnonymously(window.auth);
+                
                 console.log("Firebase Auth Success");
                 window.firebaseReady = true;
                 if(window.loadDataFromCloud) window.loadDataFromCloud(); 
             } catch (error) {
                 console.error("Firebase Auth Error:", error);
-                alert("Database Connection Failed. Running offline mode.");
+                alert("Koneksi Database Gagal: Harap pastikan 'Anonymous' Sign-in Method sudah diaktifkan di Firebase Console > Authentication.");
             }
         }
         initFirebase();
@@ -246,7 +245,7 @@
             assignments: [],
             questionSets: [],
             formNo: { value: 'F/TWA-OPS/061/01', date: '21 Jun 2024' },
-            admin: { u: 'admin', p: 'admin123' },
+            admin: { u: 'admin', p: 'admin119-021' }, // PERBAIKAN: Default password diubah ke admin119-021
             superAdmin: { code: '2805' },
             currentUser: null,
             isAdmin: false,
@@ -579,7 +578,11 @@
         // --- EXAM BANKS ---
         function renderQuestionData() {
             let html = `<div class="flex justify-between items-center mb-6"><div><h2 class="text-xl font-bold">Exam Banks</h2></div><button onclick="openSetModal()" class="bg-blue-600 text-white px-5 py-2.5 rounded-xl text-xs font-bold uppercase shadow-lg shadow-blue-100 tracking-widest">+ New Set</button></div><div class="grid grid-cols-1 lg:grid-cols-2 gap-4">`;
-            state.questionSets.forEach(s => { html += `<div onclick="viewSetDetails(${s.id})" class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 cursor-pointer hover:border-blue-300 transition-colors group"><div class="flex justify-between items-start mb-2"><span class="text-[9px] font-black uppercase px-2 py-1 bg-slate-100 text-slate-500 rounded">${s.category}</span><span class="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded-lg group-hover:bg-blue-100">${s.questions.length} Qs</span></div><h4 class="font-bold text-slate-800 text-sm">${s.title}</h4></div>`; });
+            state.questionSets.forEach(s => { 
+                // Menampilkan label Cycle berwarna ungu jika soal memiliki siklus
+                const cycleBadge = (s.cycle && s.cycle !== 'None') ? `<span class="text-[9px] font-black uppercase px-2 py-1 bg-purple-100 text-purple-600 rounded ml-2">${s.cycle}</span>` : '';
+                html += `<div onclick="viewSetDetails(${s.id})" class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 cursor-pointer hover:border-blue-300 transition-colors group"><div class="flex justify-between items-start mb-2"><div><span class="text-[9px] font-black uppercase px-2 py-1 bg-slate-100 text-slate-500 rounded">${s.category}</span>${cycleBadge}</div><span class="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded-lg group-hover:bg-blue-100">${s.questions.length} Qs</span></div><h4 class="font-bold text-slate-800 text-sm">${s.title}</h4></div>`; 
+            });
             document.getElementById('dynamic-content').innerHTML = html + `</div>`;
         }
 
@@ -591,7 +594,23 @@
                     <input type="text" id="cs-title" class="w-full p-4 border border-slate-200 rounded-xl text-sm" placeholder="Set Title (e.g. Recurrent Type Rating Bell 412 EP)">
                     <div id="cs-t-opt" class="grid grid-cols-2 gap-3"><select id="cs-rating" class="p-3 border rounded-xl text-sm">${state.lookups.ratings.map(r=>`<option value="${r}">${r}</option>`).join('')}</select><select id="cs-model" class="p-3 border rounded-xl text-sm"><option value="Model A">Model A</option><option value="Model B">Model B</option><option value="Model C">Model C</option></select></div>
                     <div id="cs-m-opt" class="hidden"><input type="text" id="cs-mand-type" class="w-full p-3 border rounded-xl text-sm" placeholder="Training Type (e.g. CRM, DG, SMS)"></div>
-                    <select id="cs-type" class="w-full p-3 border rounded-xl text-sm"><option value="Initial">Initial</option><option value="Recurrent">Recurrent</option><option value="Upgrade">Upgrade</option></select>
+                    
+                    <!-- PERBAIKAN: Menambahkan kolom input Cycle berdampingan dengan Exam Type -->
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="text-[10px] font-black text-slate-400 uppercase block mb-1">Exam Type</label>
+                            <select id="cs-type" class="w-full p-3 border rounded-xl text-sm"><option value="Initial">Initial</option><option value="Recurrent">Recurrent</option><option value="Upgrade">Upgrade</option></select>
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-black text-slate-400 uppercase block mb-1">Training Cycle</label>
+                            <select id="cs-cycle" class="w-full p-3 border rounded-xl text-sm bg-purple-50 text-purple-700 font-bold outline-none border-purple-100">
+                                <option value="None">No Cycle (Default)</option>
+                                <option value="Cycle 1">Cycle 1</option>
+                                <option value="Cycle 2">Cycle 2</option>
+                                <option value="Cycle 3">Cycle 3</option>
+                            </select>
+                        </div>
+                    </div>
                 </div>
             `;
             document.getElementById('modal-footer').innerHTML = `<button onclick="closeModal()" class="px-4 py-2 text-xs font-bold text-slate-400">Cancel</button><button onclick="saveSet()" class="px-8 py-2.5 bg-blue-600 text-white rounded-xl text-xs font-black uppercase shadow-lg shadow-blue-100">Create</button>`;
@@ -606,17 +625,35 @@
 
         function saveSet() {
             const cat = document.getElementById('cs-cat').value;
-            const newSet = { id: Date.now(), category: cat, title: document.getElementById('cs-title').value, type: document.getElementById('cs-type').value, questions: [] };
+            
+            // PERBAIKAN: Menyimpan data Cycle ke dalam objek newSet
+            const newSet = { 
+                id: Date.now(), 
+                category: cat, 
+                title: document.getElementById('cs-title').value, 
+                type: document.getElementById('cs-type').value, 
+                cycle: document.getElementById('cs-cycle').value,
+                questions: [] 
+            };
+            
             if (cat === 'Type Rating') { newSet.rating = document.getElementById('cs-rating').value; newSet.model = document.getElementById('cs-model').value; }
             else { newSet.mandatoryType = document.getElementById('cs-mand-type').value; }
+            
             state.questionSets.push(newSet); syncToCloud(); closeModal(); renderQuestionData();
         }
 
         function viewSetDetails(id) {
             const set = state.questionSets.find(s => s.id === id);
             document.getElementById('dynamic-content').className = "flex-1 w-full mx-auto p-0 page-fade";
+            
+            const cycleBadge = (set.cycle && set.cycle !== 'None') ? `<span class="text-[9px] font-black uppercase px-2 py-1 bg-purple-100 text-purple-600 rounded ml-2">${set.cycle}</span>` : '';
+            
             let html = `
-                <div class="bg-white border-b border-slate-100 sticky top-16 z-40 shadow-sm"><div class="max-w-4xl mx-auto p-4 md:p-6 flex justify-between items-center"><div class="flex items-center gap-4"><button onclick="renderTabContent('questions')" class="w-8 h-8 flex items-center justify-center rounded-full bg-slate-50 hover:bg-slate-100 text-slate-500 font-bold">&larr;</button><div><h2 class="text-lg font-black text-slate-800 leading-tight">${set.title}</h2><p class="text-[10px] uppercase font-bold text-blue-500 tracking-widest">${set.category}</p></div></div><div class="flex gap-2"><button onclick="openQuestionModal(${id})" class="px-4 py-2 bg-blue-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-md">+ Q</button><button onclick="deleteSet(${id})" class="px-3 py-2 bg-red-50 text-red-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-red-100">DEL SET</button></div></div></div>
+                <div class="bg-white border-b border-slate-100 sticky top-16 z-40 shadow-sm"><div class="max-w-4xl mx-auto p-4 md:p-6 flex justify-between items-center"><div class="flex items-center gap-4"><button onclick="renderTabContent('questions')" class="w-8 h-8 flex items-center justify-center rounded-full bg-slate-50 hover:bg-slate-100 text-slate-500 font-bold">&larr;</button><div><h2 class="text-lg font-black text-slate-800 leading-tight">${set.title}</h2><p class="text-[10px] uppercase font-bold text-blue-500 tracking-widest">${set.category} ${cycleBadge}</p></div></div><div class="flex gap-2">
+                    <button onclick="openBulkImportModal(${id})" class="px-4 py-2 bg-indigo-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-md hover:bg-indigo-700 transition-colors">Auto Parse</button>
+                    <button onclick="openQuestionModal(${id})" class="px-4 py-2 bg-blue-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-md hover:bg-blue-700">+ Q</button>
+                    <button onclick="deleteSet(${id})" class="px-3 py-2 bg-red-50 text-red-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-red-100">DEL SET</button>
+                </div></div></div>
                 <div class="max-w-4xl mx-auto p-4 md:p-6 space-y-4">
             `;
             if (set.questions.length === 0) { html += `<div class="text-center p-12 bg-slate-50 rounded-3xl border border-dashed border-slate-200"><p class="text-sm font-bold text-slate-400 mb-4">No questions yet.</p></div>`; }
@@ -627,6 +664,88 @@
                 });
             }
             document.getElementById('dynamic-content').innerHTML = html + `</div>`;
+        }
+
+        // NEW CODE: Fitur Auto Parse / Bulk Import
+        function openBulkImportModal(setId) {
+            document.getElementById('modal-title').innerText = "Auto Parse Questions";
+            document.getElementById('modal-body').innerHTML = `
+                <div class="space-y-4">
+                    <div class="p-4 bg-indigo-50 border border-indigo-100 rounded-xl text-xs text-indigo-800">
+                        <p class="font-bold mb-2 uppercase tracking-widest text-[10px]">Format Standard (Copy-Paste):</p>
+                        <p class="font-mono">1. Pertanyaan anda disini...<br>A. Opsi pertama<br>B. Opsi kedua<br>C. Opsi ketiga<br>D. Opsi keempat<br>Answer: A</p>
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-black text-slate-400 uppercase block mb-1">Kategori Section</label>
+                        <input type="text" id="bulk-section" class="w-full p-3 border rounded-xl text-sm font-bold bg-slate-50" placeholder="e.g. General, Limitations, Emergency">
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-black text-slate-400 uppercase block mb-1">Paste Data Soal</label>
+                        <textarea id="bulk-text" rows="10" class="w-full p-3 border border-slate-200 rounded-xl text-xs font-mono whitespace-pre-wrap outline-none focus:border-indigo-500" placeholder="1. What is the MTOW..."></textarea>
+                    </div>
+                </div>
+            `;
+            document.getElementById('modal-footer').innerHTML = `<button onclick="closeModal()" class="px-4 py-2 text-xs font-bold text-slate-400 hover:text-slate-600">Cancel</button><button onclick="processBulkImport(${setId})" class="px-8 py-2.5 bg-indigo-600 text-white rounded-xl text-xs font-black shadow-lg shadow-indigo-200 uppercase tracking-widest hover:bg-indigo-700 transition-colors">Parse & Save</button>`;
+            document.getElementById('modal-container').classList.remove('hidden');
+        }
+
+        function processBulkImport(setId) {
+            const text = document.getElementById('bulk-text').value;
+            const sectionName = document.getElementById('bulk-section').value || 'General';
+            const set = state.questionSets.find(s => s.id === setId);
+            
+            if(!text.trim()) return alert('Teks tidak boleh kosong.');
+
+            let currentQ = null;
+            let addedCount = 0;
+            const lines = text.split('\n');
+
+            for (let i = 0; i < lines.length; i++) {
+                let line = lines[i].trim();
+                if (!line) continue;
+
+                // Deteksi awalan nomor soal: "1.", "1)", "Q1."
+                if (/^(Q?\d+[\.\)]\s*)/i.test(line)) {
+                    if (currentQ) {
+                        set.questions.push(currentQ);
+                        addedCount++;
+                    }
+                    currentQ = {
+                        id: set.questions.length + 1 + addedCount, // sementara, dire-index di akhir
+                        section: sectionName,
+                        text: line.replace(/^(Q?\d+[\.\)]\s*)/i, ''),
+                        options: {A:'', B:'', C:'', D:''},
+                        answer: 'A'
+                    };
+                } else if (currentQ) {
+                    let upper = line.toUpperCase();
+                    // Deteksi huruf Opsi (A., B., C., D. atau A), B), dsb)
+                    if (upper.startsWith('A.') || upper.startsWith('A)')) currentQ.options.A = line.substring(2).trim();
+                    else if (upper.startsWith('B.') || upper.startsWith('B)')) currentQ.options.B = line.substring(2).trim();
+                    else if (upper.startsWith('C.') || upper.startsWith('C)')) currentQ.options.C = line.substring(2).trim();
+                    else if (upper.startsWith('D.') || upper.startsWith('D)')) currentQ.options.D = line.substring(2).trim();
+                    // Deteksi Kunci Jawaban
+                    else if (upper.startsWith('ANSWER:') || upper.startsWith('ANSWER :') || upper.startsWith('JAWABAN:') || upper.startsWith('ANS:')) {
+                        let match = upper.match(/[A-D]/);
+                        if (match) currentQ.answer = match[0];
+                    } else {
+                        // Jika teks pertanyaan panjang (multibaris) dan opsi A belum terdeteksi, gabungkan ke teks
+                        if (!currentQ.options.A) {
+                            currentQ.text += ' ' + line;
+                        }
+                    }
+                }
+            }
+            // Mendorong (push) pertanyaan terakhir di dalam loop
+            if (currentQ) { set.questions.push(currentQ); addedCount++; }
+
+            // Merapikan ulang seluruh nomor urut ID pada sistem
+            set.questions.forEach((q, idx) => q.id = idx + 1);
+
+            syncToCloud();
+            closeModal();
+            viewSetDetails(setId);
+            alert(`✅ Berhasil mengekstrak dan menambahkan ${addedCount} soal baru.`);
         }
 
         function openQuestionModal(setId, qId = null) {
@@ -758,6 +877,51 @@
             const eDate = document.getElementById('as-date').value;
             
             if(!exTitle || !inst || !eDate) return alert('Complete all required fields.');
+
+            // --- NEW CODE: Logika Pengecekan Urutan Cycle secara Otomatis ---
+            const targetSet = state.questionSets.find(q => q.title === exTitle);
+            if (targetSet && targetSet.cycle && targetSet.cycle !== 'None') {
+                let errorMsg = '';
+                
+                for(let i=0; i<cbx.length; i++) {
+                    const uid = Number(cbx[i].value);
+                    const uname = cbx[i].dataset.name;
+                    
+                    // Tarik seluruh riwayat tugas user ini
+                    const userHistory = state.assignments.filter(a => a.userId === uid);
+                    let latestCycle = null;
+                    let latestDate = 0;
+                    
+                    // Mencari siklus terakhir yang dikerjakan pada kategori pesawat/training yang IDENTIK
+                    userHistory.forEach(a => {
+                        const aSet = state.questionSets.find(q => q.title === a.examTitle);
+                        if (aSet && aSet.category === targetSet.category && aSet.type === targetSet.type && aSet.rating === targetSet.rating && aSet.model === targetSet.model && aSet.mandatoryType === targetSet.mandatoryType && aSet.cycle && aSet.cycle !== 'None') {
+                            const aDate = new Date(a.examDate).getTime();
+                            if (aDate >= latestDate) {
+                                latestDate = aDate;
+                                latestCycle = aSet.cycle; // Menyimpan cycle terakhir
+                            }
+                        }
+                    });
+                    
+                    // Tentukan aturan urutan siklus selanjutnya
+                    let expectedCycle = 'Cycle 1';
+                    if (latestCycle === 'Cycle 1') expectedCycle = 'Cycle 2';
+                    else if (latestCycle === 'Cycle 2') expectedCycle = 'Cycle 3';
+                    else if (latestCycle === 'Cycle 3') expectedCycle = 'Cycle 1';
+                    
+                    // Tolak jika Cycle yang di assign tidak sesuai urutan
+                    if (targetSet.cycle !== expectedCycle) {
+                        errorMsg += `- ${uname} (Seharusnya mengerjakan: ${expectedCycle})\n`;
+                    }
+                }
+                
+                if (errorMsg !== '') {
+                    alert("⚠️ PENUGASAN DITOLAK\n\nSistem mendeteksi ada Trainee/Candidate yang tidak sesuai dengan urutan Cycle-nya:\n\n" + errorMsg + "\nSilakan periksa kembali siklus mereka.");
+                    return; // Batalkan proses assign
+                }
+            }
+            // --- END NEW CODE ---
 
             let durStr = '';
             const h = document.getElementById('as-dur-h').value, m = document.getElementById('as-dur-m').value;
