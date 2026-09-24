@@ -1082,6 +1082,9 @@
                 }
             }
 
+            // PERBAIKAN: Mendeteksi data Cycle khusus jika ujian berjenis Recurrent
+            const cycleDisplay = (isRecurrent && set && set.cycle && set.cycle !== 'None') ? set.cycle : null;
+
             const html = `
                 <div class="print-page">
                     <div class="print-header">
@@ -1089,6 +1092,7 @@
                         <h1>Transwisata Prima Aviation</h1>
                         <h2>FLIGHT CREW EXAMINATION RESULT</h2>
                         <h3>${a.examTitle}</h3>
+                        ${cycleDisplay ? `<h4 style="margin: 5px 0 0 0; font-size: 12pt;">(${cycleDisplay.toUpperCase()})</h4>` : ''}
                         
                         <div style="display: flex; justify-content: space-between; align-items: flex-end; font-size: 10pt; margin-top: 15px;">
                             <div style="text-align: left; font-weight: bold; font-style: italic;">Online Examination Form</div>
@@ -1101,6 +1105,7 @@
                         <tr><td>Name ${term}:</td><td><b>${u.name}</b></td></tr>
                         <tr><td>Rank:</td><td><b>${u.rank}</b></td></tr>
                         <tr><td>No. License:</td><td><b>${u.license}</b></td></tr>
+                        ${cycleDisplay ? `<tr><td>Training Cycle:</td><td><b>${cycleDisplay}</b></td></tr>` : ''}
                         <tr><td>Name Instructor:</td><td><b>${instName}</b></td></tr>
                         <tr><td>LOA Instructor:</td><td><b>${instLOA}</b></td></tr>
                         <tr><td>Exam Date:</td><td><b>${formatDisplayDate(a.examDate)}</b></td></tr>
