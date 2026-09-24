@@ -1451,6 +1451,11 @@
 
         // --- UTILS ---
         function closeModal() { document.getElementById('modal-container').classList.add('hidden'); }
+        
+        // NEW CODE: Fungsi helper untuk Live Preview Tanda Tangan
+        function updateSignPreview(val, boxId) {
+            document.getElementById(boxId).innerHTML = val || '<span class="text-[10px] text-slate-400 italic">No signature yet</span>';
+        }
     </script>
 </body>
 </html>
