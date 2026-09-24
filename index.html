@@ -587,34 +587,36 @@
         }
 
         function openSetModal() {
-            document.getElementById('modal-title').innerText = "Create Exam Set";
-            document.getElementById('modal-body').innerHTML = `
-                <div class="space-y-4">
-                    <select id="cs-cat" onchange="toggleSetOptions()" class="w-full p-4 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 outline-none"><option value="Type Rating">Type Rating Exam</option><option value="Mandatory Training">Mandatory Training</option></select>
-                    <input type="text" id="cs-title" class="w-full p-4 border border-slate-200 rounded-xl text-sm" placeholder="Set Title (e.g. Recurrent Type Rating Bell 412 EP)">
-                    <div id="cs-t-opt" class="grid grid-cols-2 gap-3"><select id="cs-rating" class="p-3 border rounded-xl text-sm">${state.lookups.ratings.map(r=>`<option value="${r}">${r}</option>`).join('')}</select><select id="cs-model" class="p-3 border rounded-xl text-sm"><option value="Model A">Model A</option><option value="Model B">Model B</option><option value="Model C">Model C</option></select></div>
-                    <div id="cs-m-opt" class="hidden"><input type="text" id="cs-mand-type" class="w-full p-3 border rounded-xl text-sm" placeholder="Training Type (e.g. CRM, DG, SMS)"></div>
-                    
-                    <!-- PERBAIKAN: Menambahkan kolom input Cycle berdampingan dengan Exam Type -->
-                    <div class="grid grid-cols-2 gap-3">
-                        <div>
-                            <label class="text-[10px] font-black text-slate-400 uppercase block mb-1">Exam Type</label>
-                            <select id="cs-type" class="w-full p-3 border rounded-xl text-sm"><option value="Initial">Initial</option><option value="Recurrent">Recurrent</option><option value="Upgrade">Upgrade</option></select>
-                        </div>
-                        <div>
-                            <label class="text-[10px] font-black text-slate-400 uppercase block mb-1">Training Cycle</label>
-                            <select id="cs-cycle" class="w-full p-3 border rounded-xl text-sm bg-purple-50 text-purple-700 font-bold outline-none border-purple-100">
-                                <option value="None">No Cycle (Default)</option>
-                                <option value="Cycle 1">Cycle 1</option>
-                                <option value="Cycle 2">Cycle 2</option>
-                                <option value="Cycle 3">Cycle 3</option>
-                            </select>
+            // PERBAIKAN: Meminta PIN Super Admin sebelum membuat Set Ujian
+            promptVerify(() => {
+                document.getElementById('modal-title').innerText = "Create Exam Set";
+                document.getElementById('modal-body').innerHTML = `
+                    <div class="space-y-4">
+                        <select id="cs-cat" onchange="toggleSetOptions()" class="w-full p-4 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 outline-none"><option value="Type Rating">Type Rating Exam</option><option value="Mandatory Training">Mandatory Training</option></select>
+                        <input type="text" id="cs-title" class="w-full p-4 border border-slate-200 rounded-xl text-sm" placeholder="Set Title (e.g. Recurrent Type Rating Bell 412 EP)">
+                        <div id="cs-t-opt" class="grid grid-cols-2 gap-3"><select id="cs-rating" class="p-3 border rounded-xl text-sm">${state.lookups.ratings.map(r=>`<option value="${r}">${r}</option>`).join('')}</select><select id="cs-model" class="p-3 border rounded-xl text-sm"><option value="Model A">Model A</option><option value="Model B">Model B</option><option value="Model C">Model C</option></select></div>
+                        <div id="cs-m-opt" class="hidden"><input type="text" id="cs-mand-type" class="w-full p-3 border rounded-xl text-sm" placeholder="Training Type (e.g. CRM, DG, SMS)"></div>
+                        
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="text-[10px] font-black text-slate-400 uppercase block mb-1">Exam Type</label>
+                                <select id="cs-type" class="w-full p-3 border rounded-xl text-sm"><option value="Initial">Initial</option><option value="Recurrent">Recurrent</option><option value="Upgrade">Upgrade</option></select>
+                            </div>
+                            <div>
+                                <label class="text-[10px] font-black text-slate-400 uppercase block mb-1">Training Cycle</label>
+                                <select id="cs-cycle" class="w-full p-3 border rounded-xl text-sm bg-purple-50 text-purple-700 font-bold outline-none border-purple-100">
+                                    <option value="None">No Cycle (Default)</option>
+                                    <option value="Cycle 1">Cycle 1</option>
+                                    <option value="Cycle 2">Cycle 2</option>
+                                    <option value="Cycle 3">Cycle 3</option>
+                                </select>
+                            </div>
                         </div>
                     </div>
-                </div>
-            `;
-            document.getElementById('modal-footer').innerHTML = `<button onclick="closeModal()" class="px-4 py-2 text-xs font-bold text-slate-400">Cancel</button><button onclick="saveSet()" class="px-8 py-2.5 bg-blue-600 text-white rounded-xl text-xs font-black uppercase shadow-lg shadow-blue-100">Create</button>`;
-            document.getElementById('modal-container').classList.remove('hidden');
+                `;
+                document.getElementById('modal-footer').innerHTML = `<button onclick="closeModal()" class="px-4 py-2 text-xs font-bold text-slate-400">Cancel</button><button onclick="saveSet()" class="px-8 py-2.5 bg-blue-600 text-white rounded-xl text-xs font-black uppercase shadow-lg shadow-blue-100">Create</button>`;
+                document.getElementById('modal-container').classList.remove('hidden');
+            });
         }
 
         function toggleSetOptions() {
@@ -668,25 +670,28 @@
 
         // NEW CODE: Fitur Auto Parse / Bulk Import
         function openBulkImportModal(setId) {
-            document.getElementById('modal-title').innerText = "Auto Parse Questions";
-            document.getElementById('modal-body').innerHTML = `
-                <div class="space-y-4">
-                    <div class="p-4 bg-indigo-50 border border-indigo-100 rounded-xl text-xs text-indigo-800">
-                        <p class="font-bold mb-2 uppercase tracking-widest text-[10px]">Format Standard (Copy-Paste):</p>
-                        <p class="font-mono">1. Pertanyaan anda disini...<br>A. Opsi pertama<br>B. Opsi kedua<br>C. Opsi ketiga<br>D. Opsi keempat<br>Answer: A</p>
+            // PERBAIKAN: Meminta PIN Super Admin sebelum mengimpor soal massal
+            promptVerify(() => {
+                document.getElementById('modal-title').innerText = "Auto Parse Questions";
+                document.getElementById('modal-body').innerHTML = `
+                    <div class="space-y-4">
+                        <div class="p-4 bg-indigo-50 border border-indigo-100 rounded-xl text-xs text-indigo-800">
+                            <p class="font-bold mb-2 uppercase tracking-widest text-[10px]">Format Standard (Copy-Paste):</p>
+                            <p class="font-mono">1. Pertanyaan anda disini...<br>A. Opsi pertama<br>B. Opsi kedua<br>C. Opsi ketiga<br>D. Opsi keempat<br>Answer: A</p>
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-black text-slate-400 uppercase block mb-1">Kategori Section</label>
+                            <input type="text" id="bulk-section" class="w-full p-3 border rounded-xl text-sm font-bold bg-slate-50" placeholder="e.g. General, Limitations, Emergency">
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-black text-slate-400 uppercase block mb-1">Paste Data Soal</label>
+                            <textarea id="bulk-text" rows="10" class="w-full p-3 border border-slate-200 rounded-xl text-xs font-mono whitespace-pre-wrap outline-none focus:border-indigo-500" placeholder="1. What is the MTOW..."></textarea>
+                        </div>
                     </div>
-                    <div>
-                        <label class="text-[10px] font-black text-slate-400 uppercase block mb-1">Kategori Section</label>
-                        <input type="text" id="bulk-section" class="w-full p-3 border rounded-xl text-sm font-bold bg-slate-50" placeholder="e.g. General, Limitations, Emergency">
-                    </div>
-                    <div>
-                        <label class="text-[10px] font-black text-slate-400 uppercase block mb-1">Paste Data Soal</label>
-                        <textarea id="bulk-text" rows="10" class="w-full p-3 border border-slate-200 rounded-xl text-xs font-mono whitespace-pre-wrap outline-none focus:border-indigo-500" placeholder="1. What is the MTOW..."></textarea>
-                    </div>
-                </div>
-            `;
-            document.getElementById('modal-footer').innerHTML = `<button onclick="closeModal()" class="px-4 py-2 text-xs font-bold text-slate-400 hover:text-slate-600">Cancel</button><button onclick="processBulkImport(${setId})" class="px-8 py-2.5 bg-indigo-600 text-white rounded-xl text-xs font-black shadow-lg shadow-indigo-200 uppercase tracking-widest hover:bg-indigo-700 transition-colors">Parse & Save</button>`;
-            document.getElementById('modal-container').classList.remove('hidden');
+                `;
+                document.getElementById('modal-footer').innerHTML = `<button onclick="closeModal()" class="px-4 py-2 text-xs font-bold text-slate-400 hover:text-slate-600">Cancel</button><button onclick="processBulkImport(${setId})" class="px-8 py-2.5 bg-indigo-600 text-white rounded-xl text-xs font-black shadow-lg shadow-indigo-200 uppercase tracking-widest hover:bg-indigo-700 transition-colors">Parse & Save</button>`;
+                document.getElementById('modal-container').classList.remove('hidden');
+            });
         }
 
         function processBulkImport(setId) {
@@ -749,24 +754,27 @@
         }
 
         function openQuestionModal(setId, qId = null) {
-            let q = { section: 'General', text: '', options: {A:'', B:'', C:'', D:''}, answer: 'A' };
-            if (qId) { q = state.questionSets.find(s => s.id === setId).questions.find(item => item.id === qId); }
-            document.getElementById('modal-title').innerText = qId ? "Edit Question" : "Add Question";
-            document.getElementById('modal-body').innerHTML = `
-                <div class="space-y-4">
-                    <input type="text" id="eq-sect" value="${q.section}" class="w-full p-3 border rounded-xl text-sm font-bold bg-slate-50" placeholder="Section (e.g. General, Limitations)">
-                    <textarea id="eq-text" rows="3" class="w-full p-3 border rounded-xl text-sm" placeholder="Question text...">${q.text}</textarea>
-                    <div class="space-y-2">
-                        <div class="flex items-center gap-2"><span class="font-black text-slate-400 w-4">A</span><input type="text" id="eq-a" value="${q.options.A}" class="flex-1 p-2.5 border rounded-lg text-sm"></div>
-                        <div class="flex items-center gap-2"><span class="font-black text-slate-400 w-4">B</span><input type="text" id="eq-b" value="${q.options.B}" class="flex-1 p-2.5 border rounded-lg text-sm"></div>
-                        <div class="flex items-center gap-2"><span class="font-black text-slate-400 w-4">C</span><input type="text" id="eq-c" value="${q.options.C}" class="flex-1 p-2.5 border rounded-lg text-sm"></div>
-                        <div class="flex items-center gap-2"><span class="font-black text-slate-400 w-4">D</span><input type="text" id="eq-d" value="${q.options.D}" class="flex-1 p-2.5 border rounded-lg text-sm"></div>
+            // PERBAIKAN: Meminta PIN Super Admin sebelum membuat atau mengedit soal individual
+            promptVerify(() => {
+                let q = { section: 'General', text: '', options: {A:'', B:'', C:'', D:''}, answer: 'A' };
+                if (qId) { q = state.questionSets.find(s => s.id === setId).questions.find(item => item.id === qId); }
+                document.getElementById('modal-title').innerText = qId ? "Edit Question" : "Add Question";
+                document.getElementById('modal-body').innerHTML = `
+                    <div class="space-y-4">
+                        <input type="text" id="eq-sect" value="${q.section}" class="w-full p-3 border rounded-xl text-sm font-bold bg-slate-50" placeholder="Section (e.g. General, Limitations)">
+                        <textarea id="eq-text" rows="3" class="w-full p-3 border rounded-xl text-sm" placeholder="Question text...">${q.text}</textarea>
+                        <div class="space-y-2">
+                            <div class="flex items-center gap-2"><span class="font-black text-slate-400 w-4">A</span><input type="text" id="eq-a" value="${q.options.A}" class="flex-1 p-2.5 border rounded-lg text-sm"></div>
+                            <div class="flex items-center gap-2"><span class="font-black text-slate-400 w-4">B</span><input type="text" id="eq-b" value="${q.options.B}" class="flex-1 p-2.5 border rounded-lg text-sm"></div>
+                            <div class="flex items-center gap-2"><span class="font-black text-slate-400 w-4">C</span><input type="text" id="eq-c" value="${q.options.C}" class="flex-1 p-2.5 border rounded-lg text-sm"></div>
+                            <div class="flex items-center gap-2"><span class="font-black text-slate-400 w-4">D</span><input type="text" id="eq-d" value="${q.options.D}" class="flex-1 p-2.5 border rounded-lg text-sm"></div>
+                        </div>
+                        <div><label class="text-[10px] font-black text-slate-400 uppercase block mb-1">Correct Answer</label><select id="eq-ans" class="w-full p-3 border rounded-xl text-sm font-bold bg-blue-50 text-blue-700 outline-none"><option value="A" ${q.answer==='A'?'selected':''}>Option A</option><option value="B" ${q.answer==='B'?'selected':''}>Option B</option><option value="C" ${q.answer==='C'?'selected':''}>Option C</option><option value="D" ${q.answer==='D'?'selected':''}>Option D</option></select></div>
                     </div>
-                    <div><label class="text-[10px] font-black text-slate-400 uppercase block mb-1">Correct Answer</label><select id="eq-ans" class="w-full p-3 border rounded-xl text-sm font-bold bg-blue-50 text-blue-700 outline-none"><option value="A" ${q.answer==='A'?'selected':''}>Option A</option><option value="B" ${q.answer==='B'?'selected':''}>Option B</option><option value="C" ${q.answer==='C'?'selected':''}>Option C</option><option value="D" ${q.answer==='D'?'selected':''}>Option D</option></select></div>
-                </div>
-            `;
-            document.getElementById('modal-footer').innerHTML = `<button onclick="closeModal()" class="px-4 py-2 text-xs font-bold text-slate-400">Cancel</button><button onclick="${qId ? `saveQuestionEdit(${setId}, ${qId})` : `saveQuestionAdd(${setId})`}" class="px-8 py-2.5 bg-blue-600 text-white rounded-xl text-xs font-black shadow-lg">Save</button>`;
-            document.getElementById('modal-container').classList.remove('hidden');
+                `;
+                document.getElementById('modal-footer').innerHTML = `<button onclick="closeModal()" class="px-4 py-2 text-xs font-bold text-slate-400">Cancel</button><button onclick="${qId ? `saveQuestionEdit(${setId}, ${qId})` : `saveQuestionAdd(${setId})`}" class="px-8 py-2.5 bg-blue-600 text-white rounded-xl text-xs font-black shadow-lg">Save</button>`;
+                document.getElementById('modal-container').classList.remove('hidden');
+            });
         }
 
         function saveQuestionAdd(setId) {
