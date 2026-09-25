@@ -469,7 +469,8 @@
 
         // --- USER DATA ---
         function renderUserData() {
-            let html = `<div class="mb-6"><h2 class="text-xl font-bold">User Database</h2></div><div class="bg-white rounded-3xl shadow-sm overflow-hidden border border-slate-100"><table class="w-full text-left border-collapse"><thead class="bg-slate-50 border-b"><tr><th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase">Name</th><th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase">Email</th><th class="px-6 py-4 text-right text-[10px] font-black text-slate-400 uppercase tracking-widest">Action</th></tr></thead><tbody class="divide-y divide-slate-50">`;
+            // PERBAIKAN: Menambahkan tombol '+ Add User' pada header tab User Database
+            let html = `<div class="flex justify-between items-center mb-6"><div><h2 class="text-xl font-bold">User Database</h2></div><button onclick="openAddUser()" class="bg-blue-600 text-white px-5 py-2.5 rounded-xl text-xs font-bold uppercase shadow-lg shadow-blue-100 tracking-widest hover:bg-blue-700 transition-all">+ Add User</button></div><div class="bg-white rounded-3xl shadow-sm overflow-hidden border border-slate-100"><table class="w-full text-left border-collapse"><thead class="bg-slate-50 border-b"><tr><th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase">Name</th><th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase">Email</th><th class="px-6 py-4 text-right text-[10px] font-black text-slate-400 uppercase tracking-widest">Action</th></tr></thead><tbody class="divide-y divide-slate-50">`;
             state.users.forEach(u => { html += `<tr class="hover:bg-slate-50/50 transition-colors"><td class="px-6 py-4 font-bold text-slate-800 text-sm">${u.name} <span class="ml-2 px-2 py-0.5 bg-blue-50 text-blue-600 text-[9px] rounded-full uppercase">${u.rank}</span></td><td class="px-6 py-4 text-xs text-slate-500">${u.username}</td><td class="px-6 py-4 text-right"><button onclick="viewUserDetail(${u.id})" class="text-[10px] font-bold text-blue-600 uppercase tracking-widest hover:text-blue-800">Detail</button></td></tr>`; });
             document.getElementById('dynamic-content').innerHTML = html + `</tbody></table></div>`;
         }
@@ -534,6 +535,60 @@
 
         function deleteUser(uid) {
             if(confirm('Delete this user?')) { state.users = state.users.filter(x => x.id !== uid); syncToCloud(); closeModal(); renderUserData(); }
+        }
+
+        // NEW CODE: Fitur Admin Tambah User Baru Secara Manual
+        function openAddUser() {
+            document.getElementById('modal-title').innerText = "Add New User";
+            document.getElementById('modal-body').innerHTML = `
+                <div class="space-y-4">
+                    <input type="text" id="au-name" class="w-full p-3 border rounded-xl text-sm" placeholder="Full Name" required>
+                    <input type="text" id="au-id" class="w-full p-3 border rounded-xl text-sm" placeholder="Username / Email" required>
+                    <input type="text" id="au-pass" class="w-full p-3 border rounded-xl text-sm" placeholder="Password" required>
+                    <div class="grid grid-cols-2 gap-3">
+                        <select id="au-rank" class="p-3 border rounded-xl text-sm">${state.lookups.ranks.map(r=>`<option value="${r}">${r}</option>`).join('')}</select>
+                        <select id="au-rating" class="p-3 border rounded-xl text-sm">${state.lookups.ratings.map(r=>`<option value="${r}">${r}</option>`).join('')}</select>
+                    </div>
+                    <input type="text" id="au-license" class="w-full p-3 border rounded-xl text-sm" placeholder="License No. (e.g. ATPL/ 20-0007)">
+                    
+                    <div class="pt-2 border-t border-slate-100">
+                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 mt-2">Signature Preview</p>
+                        <div id="add-sign-preview-box" class="w-full h-20 bg-slate-50 border border-slate-200 rounded-xl mb-3 flex items-center justify-center p-2 overflow-hidden">
+                            <span class="text-[10px] text-slate-400 italic">No signature yet</span>
+                        </div>
+                        <textarea id="au-sign" oninput="updateSignPreview(this.value, 'add-sign-preview-box')" rows="2" class="w-full p-3 border border-slate-200 rounded-xl text-xs font-mono bg-white outline-none focus:border-blue-500 transition-colors" placeholder='Paste Signature Tag here, e.g. <img src="..." />'></textarea>
+                    </div>
+                </div>
+            `;
+            document.getElementById('modal-footer').innerHTML = `<button onclick="closeModal()" class="px-4 py-2 text-xs font-bold text-slate-400">Cancel</button><button onclick="saveNewUser()" class="px-8 py-2.5 bg-blue-600 text-white rounded-xl text-xs font-black uppercase shadow-lg shadow-blue-100 hover:bg-blue-700 transition-colors">Save Data</button>`;
+            document.getElementById('modal-container').classList.remove('hidden');
+        }
+
+        function saveNewUser() {
+            const user = document.getElementById('au-id').value;
+            const name = document.getElementById('au-name').value;
+            const pass = document.getElementById('au-pass').value;
+
+            if (!name || !user || !pass) return alert('Name, Username, and Password are required!');
+            if (state.users.some(x => x.username === user) || user === state.admin.u || user === 'superadmin') {
+                return alert('Username already exists! Please choose another.');
+            }
+            
+            const newUser = {
+                id: Date.now(),
+                name: name,
+                username: user,
+                password: pass,
+                rank: document.getElementById('au-rank').value,
+                rating: document.getElementById('au-rating').value,
+                license: document.getElementById('au-license').value,
+                signUrl: document.getElementById('au-sign').value
+            };
+            
+            state.users.push(newUser);
+            syncToCloud(); 
+            closeModal(); 
+            renderUserData();
         }
 
         // --- INSTRUCTOR DATA ---
