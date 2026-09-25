@@ -751,7 +751,8 @@
 
         function processBulkImport(setId) {
             const text = document.getElementById('bulk-text').value;
-            const sectionName = document.getElementById('bulk-section').value || 'General';
+            // Ini sekarang hanya menjadi default jika dalam teks tidak ada kata SECTION
+            const defaultSection = document.getElementById('bulk-section').value || 'General';
             const set = state.questionSets.find(s => s.id === setId);
             
             if(!text.trim()) return alert('Teks tidak boleh kosong.');
@@ -759,10 +760,21 @@
             let currentQ = null;
             let addedCount = 0;
             const lines = text.split('\n');
+            
+            // NEW CODE: Variabel untuk melacak nama section/bagian yang sedang aktif
+            let activeSectionName = defaultSection;
 
             for (let i = 0; i < lines.length; i++) {
                 let line = lines[i].trim();
                 if (!line) continue;
+                
+                let upperLine = line.toUpperCase();
+
+                // NEW CODE: Deteksi otomatis perubahan SECTION dari dalam teks (contoh: "SECTION 1 - ATA 21...")
+                if (upperLine.startsWith('SECTION') || upperLine.startsWith('BAGIAN')) {
+                    activeSectionName = line; // Ambil teks aslinya sebagai nama seksi
+                    continue; // Lanjut ke baris berikutnya (jangan anggap ini sebagai soal)
+                }
 
                 // Deteksi awalan nomor soal: "1.", "1)", "Q1."
                 if (/^(Q?\d+[\.\)]\s*)/i.test(line)) {
@@ -772,7 +784,7 @@
                     }
                     currentQ = {
                         id: set.questions.length + 1 + addedCount, // sementara, dire-index di akhir
-                        section: sectionName,
+                        section: activeSectionName, // Gunakan seksi yang sedang aktif terdeteksi
                         text: line.replace(/^(Q?\d+[\.\)]\s*)/i, ''),
                         options: {A:'', B:'', C:'', D:''},
                         answer: 'A'
@@ -784,8 +796,8 @@
                     else if (upper.startsWith('B.') || upper.startsWith('B)')) currentQ.options.B = line.substring(2).trim();
                     else if (upper.startsWith('C.') || upper.startsWith('C)')) currentQ.options.C = line.substring(2).trim();
                     else if (upper.startsWith('D.') || upper.startsWith('D)')) currentQ.options.D = line.substring(2).trim();
-                    // Deteksi Kunci Jawaban
-                    else if (upper.startsWith('ANSWER:') || upper.startsWith('ANSWER :') || upper.startsWith('JAWABAN:') || upper.startsWith('ANS:')) {
+                    // Deteksi Kunci Jawaban (termasuk "Correct Answer:")
+                    else if (upper.startsWith('ANSWER:') || upper.startsWith('ANSWER :') || upper.startsWith('JAWABAN:') || upper.startsWith('ANS:') || upper.startsWith('CORRECT ANSWER:')) {
                         let match = upper.match(/[A-D]/);
                         if (match) currentQ.answer = match[0];
                     } else {
