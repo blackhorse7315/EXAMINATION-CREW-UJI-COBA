@@ -1522,6 +1522,104 @@
             document.getElementById('dynamic-content').innerHTML = html;
         }
 
+        // --- NEW CODE: FITUR IMPORT HISTORY DARI GOOGLE SHEETS ---
+        function openImportHistoryModal() {
+            promptVerify(() => {
+                document.getElementById('modal-title').innerText = "Import Exam History (From Sheets)";
+                document.getElementById('modal-body').innerHTML = `
+                    <div class="space-y-4">
+                        <div class="p-4 bg-amber-50 border border-amber-100 rounded-xl text-xs text-amber-800">
+                            <p class="font-bold mb-2 uppercase tracking-widest text-[10px]">Instruksi Import:</p>
+                            <ol class="list-decimal ml-4 space-y-1">
+                                <li>Buka Google Sheets Anda (Tab Assignments).</li>
+                                <li>Blok (Copy) data dari Baris ke-2 ke bawah.</li>
+                                <li>Pastikan kolom yang di-copy berurutan dari kiri ke kanan: <b>ID, User ID, User Name, Exam Title, Instructor, Assigned Date, Exam Date, Exam Time, Duration, Status, Score, Grade, Answers (JSON)</b>.</li>
+                                <li>Paste data tersebut ke dalam kotak teks di bawah ini.</li>
+                            </ol>
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-black text-slate-400 uppercase block mb-1">Paste Data Sheets (Tab-Separated)</label>
+                            <textarea id="import-history-text" rows="10" class="w-full p-3 border border-slate-200 rounded-xl text-xs font-mono whitespace-pre-wrap outline-none focus:border-indigo-500" placeholder="Paste data dari Google Sheets di sini..."></textarea>
+                        </div>
+                    </div>
+                `;
+                document.getElementById('modal-footer').innerHTML = `<button onclick="closeModal()" class="px-4 py-2 text-xs font-bold text-slate-400 hover:text-slate-600">Cancel</button><button onclick="processHistoryImport()" class="px-8 py-2.5 bg-indigo-600 text-white rounded-xl text-xs font-black shadow-lg shadow-indigo-200 uppercase tracking-widest hover:bg-indigo-700 transition-colors">Process Import</button>`;
+                document.getElementById('modal-container').classList.remove('hidden');
+            });
+        }
+
+        function processHistoryImport() {
+            const rawData = document.getElementById('import-history-text').value;
+            if (!rawData.trim()) return alert("Teks data tidak boleh kosong.");
+
+            const rows = rawData.trim().split('\n');
+            let importedCount = 0;
+            let errorCount = 0;
+
+            rows.forEach(row => {
+                // Gunakan tab (\t) sebagai pemisah karena data dicopy dari spreadsheet
+                const cols = row.split('\t');
+                
+                // Pastikan baris memiliki jumlah kolom yang diharapkan (minimal 12, idealnya 13 dengan jawaban)
+                if (cols.length >= 12) {
+                    try {
+                        const id = Number(cols[0].trim());
+                        
+                        // Periksa apakah ID ini sudah ada di state untuk menghindari duplikat
+                        if (!state.assignments.find(a => a.id === id)) {
+                            let parsedAnswers = null;
+                            if (cols[12]) {
+                                try {
+                                    // Bersihkan tanda kutip ekstra yang mungkin terbawa saat copy paste dari cell yang berisi JSON
+                                    let jsonStr = cols[12].trim().replace(/^"|"$/g, '').replace(/""/g, '"');
+                                    parsedAnswers = JSON.parse(jsonStr);
+                                } catch (e) {
+                                    console.warn("Gagal parsing JSON answers pada baris ID:", id, e);
+                                }
+                            }
+
+                            const newAssignment = {
+                                id: id,
+                                userId: Number(cols[1].trim()),
+                                userName: cols[2].trim(),
+                                examTitle: cols[3].trim(),
+                                instructor: cols[4].trim(),
+                                assignedDate: cols[5].trim(),
+                                examDate: cols[6].trim(),
+                                examTime: cols[7].trim(),
+                                duration: cols[8].trim(),
+                                status: cols[9].trim(),
+                                score: cols[10].trim() !== '' ? Number(cols[10].trim()) : null,
+                                grade: cols[11].trim(),
+                                answers: parsedAnswers
+                            };
+
+                            state.assignments.push(newAssignment);
+                            importedCount++;
+                        }
+                    } catch (e) {
+                        errorCount++;
+                        console.error("Gagal memproses baris:", row, e);
+                    }
+                }
+            });
+
+            if (importedCount > 0) {
+                syncToCloud();
+                alert(`Berhasil mengimpor ${importedCount} riwayat ujian. (${errorCount} baris gagal/diabaikan).`);
+                closeModal();
+                
+                // NEW CODE: Render kembali ke halaman yang benar
+                if (state.currentUser && state.currentUser.role === 'superadmin') {
+                    renderSuperAdmin();
+                } else {
+                    renderHistoryData();
+                }
+            } else {
+                alert("Tidak ada data riwayat baru yang diimpor. Pastikan format teks sesuai (Copy dari Spreadsheet) dan tidak ada duplikat.");
+            }
+        }
+
         // --- UTILS ---
         function closeModal() { document.getElementById('modal-container').classList.add('hidden'); }
         
