@@ -826,6 +826,11 @@
 
             // Merapikan ulang seluruh nomor urut ID pada sistem
             set.questions.forEach((q, idx) => q.id = idx + 1);
+            
+            // LOG REVISION: Record bulk import action
+            if (addedCount > 0) {
+                logRevision(set, 'AUTO PARSE (BULK IMPORT)', `Imported ${addedCount} questions into section: ${activeSectionName}`);
+            }
 
             syncToCloud();
             closeModal();
