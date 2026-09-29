@@ -423,7 +423,14 @@
                             <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Super Admin PIN</p>
                             <input type="text" id="sa-pin" value="${state.superAdmin.code}" class="w-full p-3 border rounded-xl text-sm font-mono" placeholder="PIN Code (Numbers Only)">
                         </div>
-                        <button onclick="saveSuperAdmin()" class="w-full py-4 bg-slate-900 text-white rounded-xl text-xs font-black uppercase tracking-widest mt-4">Save Configuration</button>
+                        <button onclick="saveSuperAdmin()" class="w-full py-4 bg-slate-900 text-white rounded-xl text-xs font-black uppercase tracking-widest mt-4 hover:bg-slate-800 transition-colors">Save Configuration</button>
+                    </div>
+                    
+                    <div class="mt-8 text-center">
+                        <button onclick="openImportHistoryModal()" class="px-6 py-3 bg-indigo-50 text-indigo-600 border border-indigo-200 hover:bg-indigo-100 rounded-xl text-xs font-black uppercase tracking-widest transition-colors w-full shadow-sm">
+                            + Import History (Sheets)
+                        </button>
+                        <p class="text-[10px] text-slate-400 mt-2">Migrate old exam records from Google Sheets</p>
                     </div>
                 </div>
             `;
@@ -1021,7 +1028,29 @@
         // --- HISTORY ---
         function renderHistoryData() {
             const completed = state.assignments.filter(a => a.status === 'COMPLETED').sort((a,b) => new Date(b.examDate) - new Date(a.examDate));
-            let html = `<div class="mb-6"><h2 class="text-xl font-bold">Exam History</h2></div><div class="bg-white rounded-3xl shadow-sm overflow-hidden border border-slate-100"><div class="overflow-x-auto"><table class="w-full text-left border-collapse min-w-[800px]"><thead class="bg-slate-50 border-b"><tr><th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase">Trainee / Candidate</th><th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase">Exam Title</th><th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase">Date</th><th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase">Score</th><th class="px-6 py-4 text-right text-[10px] font-black text-slate-400 uppercase tracking-widest">Result</th></tr></thead><tbody class="divide-y divide-slate-50">`;
+            let html = `
+                <div class="flex justify-between items-center mb-6">
+                    <div>
+                        <h2 class="text-xl font-bold">Exam History</h2>
+                        <p class="text-[10px] text-slate-400 uppercase tracking-widest mt-1">Completed Assignments</p>
+                    </div>
+                    <button onclick="openImportHistoryModal()" class="bg-indigo-600 text-white px-5 py-2.5 rounded-xl text-xs font-bold uppercase shadow-lg shadow-indigo-100 tracking-widest hover:bg-indigo-700 transition-all">
+                        Import Data
+                    </button>
+                </div>
+                <div class="bg-white rounded-3xl shadow-sm overflow-hidden border border-slate-100">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse min-w-[800px]">
+                            <thead class="bg-slate-50 border-b">
+                                <tr>
+                                    <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase">Trainee / Candidate</th>
+                                    <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase">Exam Title</th>
+                                    <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase">Date</th>
+                                    <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase">Score</th>
+                                    <th class="px-6 py-4 text-right text-[10px] font-black text-slate-400 uppercase tracking-widest">Result</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-50">`;
             
             if(completed.length === 0) { html += `<tr><td colspan="5" class="px-6 py-12 text-center text-sm font-medium text-slate-400">No history found.</td></tr>`; }
             else {
