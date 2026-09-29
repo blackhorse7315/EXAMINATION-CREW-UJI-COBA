@@ -383,9 +383,19 @@
         }
         
         function promptVerify(cb) {
-            if(state.currentUser && state.currentUser.role === 'instructor') { cb(); return; }
-            const code = prompt("Masukkan PIN Super Admin untuk melanjutkan:");
-            if (code === state.superAdmin.code) { cb(); } else { alert("PIN Salah!"); }
+            // PERBAIKAN: Hapus jalur khusus instruktur. 
+            // Sekarang hanya Super Admin yang bebas PIN. Admin dan Instruktur wajib input PIN.
+            if(state.currentUser && state.currentUser.role === 'superadmin') { 
+                cb(); 
+                return; 
+            }
+            
+            const code = prompt("Masukkan PIN Super Admin untuk melanjutkan (Otorisasi Keamanan):");
+            if (code === state.superAdmin.code) { 
+                cb(); 
+            } else if (code !== null) { 
+                alert("PIN Salah! Akses ditolak."); 
+            }
         }
 
         // --- ADMIN UI ---
