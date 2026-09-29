@@ -261,7 +261,14 @@
             const docRef = window.fsDoc(window.db, 'artifacts', window.appId, 'public', 'data', 'ecrew_db', 'main_state');
             showLoading();
             
+            // Tambahkan timeout untuk mencegah loading terus-menerus jika koneksi buruk
+            const loadingTimeout = setTimeout(() => {
+                hideLoading();
+                alert("Koneksi Database Timeout: Terjadi masalah dengan koneksi internet Anda atau aturan keamanan Firebase (Rules).");
+            }, 10000); // 10 detik batas tunggu
+
             unsubscribeSnapshot = window.fsOnSnapshot(docRef, (docSnap) => {
+                clearTimeout(loadingTimeout); // Hapus batas waktu jika berhasil terhubung
                 if (docSnap.exists()) {
                     const data = docSnap.data();
                     state.users = data.users || [];
@@ -283,8 +290,10 @@
                     else renderUserPortal();
                 }
             }, (error) => {
+                clearTimeout(loadingTimeout);
                 console.error("Firestore Listen Error:", error);
                 hideLoading();
+                alert("Gagal membaca database: " + error.message + " (Coba periksa Rules Firebase Anda).");
             });
         }
 
@@ -1380,4 +1389,4 @@
         function updateSignPreview(val, boxId) { document.getElementById(boxId).innerHTML = val || '<span class="text-[10px] text-slate-400 italic">No signature yet</span>'; }
     </script>
 </body>
-</html
+</html>
