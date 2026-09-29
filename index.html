@@ -789,22 +789,28 @@
                         options: {A:'', B:'', C:'', D:''},
                         answer: 'A'
                     };
-                } else if (currentQ) {
-                    let upper = line.toUpperCase();
-                    // Deteksi huruf Opsi (A., B., C., D. atau A), B), dsb)
-                    if (upper.startsWith('A.') || upper.startsWith('A)')) currentQ.options.A = line.substring(2).trim();
-                    else if (upper.startsWith('B.') || upper.startsWith('B)')) currentQ.options.B = line.substring(2).trim();
-                    else if (upper.startsWith('C.') || upper.startsWith('C)')) currentQ.options.C = line.substring(2).trim();
-                    else if (upper.startsWith('D.') || upper.startsWith('D)')) currentQ.options.D = line.substring(2).trim();
-                    // Deteksi Kunci Jawaban (termasuk "Correct Answer:")
-                    else if (upper.startsWith('ANSWER:') || upper.startsWith('ANSWER :') || upper.startsWith('JAWABAN:') || upper.startsWith('ANS:') || upper.startsWith('CORRECT ANSWER:')) {
-                        let match = upper.match(/[A-D]/);
-                        if (match) currentQ.answer = match[0];
-                    } else {
-                        // Jika teks pertanyaan panjang (multibaris) dan opsi A belum terdeteksi, gabungkan ke teks
-                        if (!currentQ.options.A) {
-                            currentQ.text += ' ' + line;
+                } else if (upperLine.startsWith('A.') || upperLine.startsWith('A)')) {
+                    if (currentQ) currentQ.options.A = line.substring(2).trim();
+                } else if (upperLine.startsWith('B.') || upperLine.startsWith('B)')) {
+                    if (currentQ) currentQ.options.B = line.substring(2).trim();
+                } else if (upperLine.startsWith('C.') || upperLine.startsWith('C)')) {
+                    if (currentQ) currentQ.options.C = line.substring(2).trim();
+                } else if (upperLine.startsWith('D.') || upperLine.startsWith('D)')) {
+                    if (currentQ) currentQ.options.D = line.substring(2).trim();
+                }
+                // Deteksi Kunci Jawaban (termasuk "Correct Answer:")
+                else if (upperLine.includes('ANSWER') || upperLine.includes('JAWABAN') || upperLine.startsWith('ANS:')) {
+                    if (currentQ) {
+                        // Hanya mengekstrak huruf A/B/C/D yang berada setelah kata Answer dan tanda titik dua
+                        let match = upperLine.match(/(?:ANSWER|ANS|JAWABAN)\s*:?\s*([A-D])/);
+                        if (match && match[1]) {
+                            currentQ.answer = match[1];
                         }
+                    }
+                } else {
+                    // Jika teks pertanyaan panjang (multibaris) dan opsi A belum terdeteksi, gabungkan ke teks
+                    if (currentQ && !currentQ.options.A) {
+                        currentQ.text += ' ' + line;
                     }
                 }
             }
