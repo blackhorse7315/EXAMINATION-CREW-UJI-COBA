@@ -868,7 +868,12 @@
             q.section = document.getElementById('eq-sect').value; q.text = document.getElementById('eq-text').value;
             q.options = { A: document.getElementById('eq-a').value, B: document.getElementById('eq-b').value, C: document.getElementById('eq-c').value, D: document.getElementById('eq-d').value };
             q.answer = document.getElementById('eq-ans').value;
-            syncToCloud(); viewSetDetails(setId);
+            
+            // PERBAIKAN: Menambahkan notifikasi sukses, menutup modal, dan me-refresh daftar soal
+            syncToCloud(); 
+            alert('Pertanyaan berhasil diperbarui!');
+            closeModal();
+            viewSetDetails(setId);
         }
 
         function removeQuestion(setId, qId) {
